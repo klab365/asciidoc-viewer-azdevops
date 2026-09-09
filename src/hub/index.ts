@@ -6,18 +6,21 @@ import { renderAsciidoc } from "../renderer/asciidocRenderer";
 import { getRepoFileContent } from "../services/gitService";
 import type { RenderContext } from "../types";
 import { buildTree, sortedTreeEntries, type TreeFolder } from "./tree";
+import { detectCurrentRepository } from "./currentRepo";
+import { readSelectedPathFromUrl, writeSelectedPathToUrl } from "./urlState";
 
 const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
 
 function getElements() {
+  const repoToolbar = document.getElementById("repo-toolbar");
   const repoSelect = document.getElementById("repo-select") as HTMLSelectElement | null;
   const fileTree = document.getElementById("file-tree");
   const status = document.getElementById("status");
   const content = document.getElementById("content");
-  if (!repoSelect || !fileTree || !status || !content) {
+  if (!repoToolbar || !repoSelect || !fileTree || !status || !content) {
     throw new Error("Hub page is missing expected elements.");
   }
-  return { repoSelect, fileTree, status, content };
+  return { repoToolbar, repoSelect, fileTree, status, content };
 }
 
 function showStatus(message: string, isError = false): void {
@@ -62,6 +65,7 @@ function renderTree(
       const button = document.createElement("button");
       button.type = "button";
       button.textContent = node.name;
+      button.dataset.path = node.path;
       button.addEventListener("click", () => onFileSelect(node.path, button));
       item.appendChild(button);
     }
@@ -96,7 +100,7 @@ async function main(): Promise<void> {
   await SDK.init({ loaded: false, applyTheme: true });
   await SDK.ready();
 
-  const { repoSelect, fileTree } = getElements();
+  const { repoToolbar, repoSelect, fileTree } = getElements();
   const webContext = SDK.getWebContext();
   const projectId = webContext.project?.id;
 
@@ -132,6 +136,12 @@ async function main(): Promise<void> {
 
   let selectedButton: HTMLButtonElement | null = null;
 
+  function selectFileButton(button: HTMLButtonElement): void {
+    selectedButton?.parentElement?.classList.remove("selected");
+    selectedButton = button;
+    button.parentElement?.classList.add("selected");
+  }
+
   async function loadFileTreeFor(repo: GitRepository): Promise<void> {
     fileTree.innerHTML = "";
     selectedButton = null;
@@ -151,13 +161,26 @@ async function main(): Promise<void> {
       const tree = buildTree(paths);
       fileTree.appendChild(
         renderTree(tree, async (path, button) => {
-          selectedButton?.parentElement?.classList.remove("selected");
-          selectedButton = button;
-          button.parentElement?.classList.add("selected");
+          selectFileButton(button);
+          await writeSelectedPathToUrl(path);
           await previewFile(repo, path);
         })
       );
-      showStatus("Select a file from the tree.");
+
+      // Deep-link support: if the URL already points at a specific file
+      // (e.g. from a shared link, or restored from a previous visit), open
+      // it automatically instead of showing the generic "select a file"
+      // status.
+      const linkedPath = await readSelectedPathFromUrl();
+      const linkedButton = linkedPath
+        ? (fileTree.querySelector<HTMLButtonElement>(`button[data-path="${CSS.escape(linkedPath)}"]`) ?? null)
+        : null;
+      if (linkedPath && linkedButton) {
+        selectFileButton(linkedButton);
+        await previewFile(repo, linkedPath);
+      } else {
+        showStatus("Select a file from the tree.");
+      }
     } catch (error) {
       console.error("[asciidoc-viewer] Failed to load file tree", error);
       showStatus(`Failed to load files: ${(error as Error).message ?? error}`, true);
@@ -194,7 +217,20 @@ async function main(): Promise<void> {
     }
   });
 
-  await loadFileTreeFor(repositories[0]);
+  const detectedRepo = await detectCurrentRepository(repositories);
+  if (detectedRepo) {
+    // This hub is opened while browsing a specific repository (like the
+    // built-in "Files"/"Commits" hubs) — no need to make the user pick it
+    // again from a dropdown.
+    repoToolbar.hidden = true;
+    repoSelect.value = detectedRepo.id;
+    await loadFileTreeFor(detectedRepo);
+  } else {
+    // Couldn't determine the current repository automatically — fall back
+    // to letting the user pick one manually.
+    repoToolbar.hidden = false;
+    await loadFileTreeFor(repositories[0]);
+  }
 
   await SDK.notifyLoadSucceeded();
 }
