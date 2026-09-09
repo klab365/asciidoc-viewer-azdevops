@@ -267,9 +267,11 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
 - **Lizenz:** MIT — `LICENSE`-Datei im Repo, in `vss-extension.json`
   referenziert.
 - **Publisher:** Einzelperson (du selbst) als Marketplace-Publisher —
-  Account/Publisher-ID muss im [Marketplace Publishing
-  Portal](https://marketplace.visualstudio.com/manage) angelegt werden
-  (getrennt vom GitHub-Account).
+  registrierte Publisher-ID: **`burak-kizilkaya`** (Name im Portal:
+  "burak.kizilkaya"). Das ist die tatsächliche ID im [Marketplace Publishing
+  Portal](https://marketplace.visualstudio.com/manage) und **nicht** identisch
+  mit dem GitHub-Org-Namen (`klab365`) — beide sind unabhängige Konten.
+  `"publisher"` in `vss-extension.json` muss exakt `burak-kizilkaya` sein.
 - **Extension-`id` (technisch, in `vss-extension.json`):**
   `asciidoc-viewer-azdevops` — identisch zum GitHub-Repo-Namen, für
   Konsistenz und Wiederauffindbarkeit.
