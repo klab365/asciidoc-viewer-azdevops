@@ -20,24 +20,34 @@ async function execute(actionContext: unknown): Promise<void> {
   // see plan.md risks). Safe to remove once confirmed stable.
   console.debug("[asciidoc-viewer] menu action context:", actionContext);
 
-  const context = extractRenderContext(actionContext);
-  const extensionContext = SDK.getExtensionContext();
-  const dialogContributionId = `${extensionContext.publisherId}.${extensionContext.extensionId}.${DIALOG_CONTRIBUTION_SHORT_ID}`;
+  try {
+    const context = extractRenderContext(actionContext);
+    const extensionContext = SDK.getExtensionContext();
+    const dialogContributionId = `${extensionContext.publisherId}.${extensionContext.extensionId}.${DIALOG_CONTRIBUTION_SHORT_ID}`;
+    console.debug("[asciidoc-viewer] opening dialog contribution:", dialogContributionId);
 
-  const dialogService = await SDK.getService<IHostPageLayoutService>(
-    HOST_PAGE_LAYOUT_SERVICE_ID
-  );
+    const dialogService = await SDK.getService<IHostPageLayoutService>(
+      HOST_PAGE_LAYOUT_SERVICE_ID
+    );
 
-  dialogService.openCustomDialog(dialogContributionId, {
-    title: "AsciiDoc Preview",
-    configuration: {
-      renderContext: context,
-      // Included for debugging in case `context` is null (i.e. the action
-      // context shape didn't match our extractor) — remove once verified.
-      rawActionContext: context ? undefined : actionContext
-    },
-    lightDismiss: true
-  });
+    dialogService.openCustomDialog(dialogContributionId, {
+      title: "AsciiDoc Preview",
+      configuration: {
+        renderContext: context,
+        // Included for debugging in case `context` is null (i.e. the action
+        // context shape didn't match our extractor) — remove once verified.
+        rawActionContext: context ? undefined : actionContext
+      },
+      lightDismiss: true
+    });
+  } catch (error) {
+    // Without this, a rejected promise here (e.g. getService() failing to
+    // resolve, or openCustomDialog throwing) would be silently swallowed by
+    // the host and show up only as an empty dialog with no content and no
+    // console output — this makes the failure visible.
+    console.error("[asciidoc-viewer] Failed to open preview dialog", error);
+    throw error;
+  }
 }
 
 async function main(): Promise<void> {
