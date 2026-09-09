@@ -14,11 +14,13 @@ import { readSelectedPathFromUrl, writeSelectedPathToUrl } from "./urlState";
 
 const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
 const IMAGE_EXTENSION_RE = /\.(svg|png|jpe?g|gif|webp|bmp)$/i;
+const PLANTUML_EXTENSION_RE = /\.(puml|plantuml)$/i;
 
 const FOLDER_ICON = "📁";
 const FILE_ICONS: Record<FileKind, string> = {
   adoc: "📄",
-  image: "🖼️"
+  image: "🖼️",
+  diagram: "📐"
 };
 
 function getElements() {
@@ -131,6 +133,8 @@ async function loadPreviewablePaths(
       entries.push({ path: item.path, kind: "adoc" });
     } else if (IMAGE_EXTENSION_RE.test(item.path)) {
       entries.push({ path: item.path, kind: "image" });
+    } else if (PLANTUML_EXTENSION_RE.test(item.path)) {
+      entries.push({ path: item.path, kind: "diagram" });
     }
   }
   return entries;
@@ -200,9 +204,9 @@ async function main(): Promise<void> {
       if (entries.length === 0) {
         const empty = document.createElement("div");
         empty.className = "tree-empty";
-        empty.textContent = "No .adoc/.asciidoc or image files found in this repository.";
+        empty.textContent = "No .adoc/.asciidoc, image, or PlantUML files found in this repository.";
         fileTree.appendChild(empty);
-        showStatus("No AsciiDoc or image files found in this repository.");
+        showStatus("No AsciiDoc, image, or PlantUML files found in this repository.");
         return;
       }
 
@@ -260,7 +264,8 @@ async function main(): Promise<void> {
         showStatus(`Could not load file content for "${context.filePath}".`, true);
         return;
       }
-      const html = await renderAsciidoc(mainContent, context);
+      const source = kind === "diagram" ? `[plantuml]\n----\n${mainContent}\n----` : mainContent;
+      const html = await renderAsciidoc(source, context);
       showContent(html);
     } catch (error) {
       console.error("[asciidoc-viewer] Failed to render preview", error);

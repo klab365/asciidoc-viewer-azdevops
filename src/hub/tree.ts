@@ -1,4 +1,4 @@
-export type FileKind = "adoc" | "image";
+export type FileKind = "adoc" | "image" | "diagram";
 
 export interface TreeFolder {
   type: "folder";
