@@ -1,6 +1,6 @@
 {
   "name": "asciidoc-viewer-azdevops",
-  "version": "0.5.6",
+  "version": "1.0.0",
   "description": "Azure DevOps extension that renders AsciiDoc files as a Preview tab in Repos, resolving local includes.",
   "license": "MIT",
   "private": true,

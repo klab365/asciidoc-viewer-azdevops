@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+## [1.0.0] - 2026-09-09
+
+### Added
+
+- Dedicated Azure Repos hub for browsing and rendering AsciiDoc files.
+- Recursive local `include::` resolution with cycle detection.
+- Repository-backed block-image rendering, including support for `:imagesdir:`.
+- Image-file previews and direct PlantUML (`.puml` / `.plantuml`) previews.
+- Diagram rendering for PlantUML, Mermaid, GraphViz, and other Kroki-supported
+  diagram blocks.
+- Syntax highlighting for common source languages.
+- Light- and dark-theme admonition styling.
+- Collapsible repository file tree and automatic repository detection from the
+  Azure DevOps breadcrumb.
+- Updated hub and Marketplace icons.
+
+### Changed
+
+- Published the extension publicly on the Visual Studio Marketplace.
+- Updated documentation to reflect the current hub-based experience,
+  capabilities, and diagram-rendering privacy considerations.
