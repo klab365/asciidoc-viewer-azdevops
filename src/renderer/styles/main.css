@@ -42,6 +42,16 @@
   border-radius: 3px;
 }
 
+/* Source blocks use highlight.js token colours; inline code keeps the style above. */
+.asciidoc-content pre.highlight code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  line-height: 1.5;
+}
+
 .asciidoc-content table {
   border-collapse: collapse;
   width: 100%;
@@ -55,4 +65,62 @@
 
 .asciidoc-content a {
   color: var(--communication-foreground, #0078d4);
+}
+
+/* Asciidoctor renders NOTE/TIP/WARNING/etc. as tables; make them readable callouts. */
+.asciidoc-content .admonitionblock {
+  --admonition-color: #0078d4;
+  --admonition-background: #f0f8ff;
+  margin: 1.25rem 0;
+  overflow: hidden;
+  border-left: 4px solid var(--admonition-color);
+  border-radius: 4px;
+  background: var(--admonition-background);
+}
+
+.asciidoc-content .admonitionblock table {
+  width: 100%;
+  border: 0;
+}
+
+.asciidoc-content .admonitionblock td {
+  border: 0;
+  padding: 12px 16px;
+  vertical-align: top;
+}
+
+.asciidoc-content .admonitionblock .icon {
+  width: 1%;
+  color: var(--admonition-color);
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.asciidoc-content .admonitionblock .content > :first-child {
+  margin-top: 0;
+}
+
+.asciidoc-content .admonitionblock .content > :last-child {
+  margin-bottom: 0;
+}
+
+.asciidoc-content .admonitionblock.tip {
+  --admonition-color: #107c10;
+  --admonition-background: #f1faf1;
+}
+
+.asciidoc-content .admonitionblock.warning {
+  --admonition-color: #d83b01;
+  --admonition-background: #fff4e5;
+}
+
+.asciidoc-content .admonitionblock.caution {
+  --admonition-color: #d13438;
+  --admonition-background: #fdf0f1;
+}
+
+.asciidoc-content .admonitionblock.important {
+  --admonition-color: #a4262c;
+  --admonition-background: #fceff0;
 }

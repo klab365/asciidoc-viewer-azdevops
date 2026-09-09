@@ -86,17 +86,27 @@ export async function resolvePendingImages(
   context: RenderContext
 ): Promise<string> {
   let result = html;
+  const contentByPath = new Map<string, Promise<ArrayBuffer | null>>();
 
   await Promise.all(
     pendingImages.map(async ({ placeholder, resolvedPath }) => {
-      const bytes = await getRepoBinaryContent(context, resolvedPath);
-      const replacement =
-        bytes === null ? undefined : `data:${mimeTypeFor(resolvedPath)};base64,${arrayBufferToBase64(bytes)}`;
+      let content = contentByPath.get(resolvedPath);
+      if (!content) {
+        content = getRepoBinaryContent(context, resolvedPath);
+        contentByPath.set(resolvedPath, content);
+      }
 
-      result = result.replaceAll(
-        placeholder,
-        replacement ?? `data:image/svg+xml;utf8,${encodeURIComponent(brokenImagePlaceholderSvg(resolvedPath))}`
-      );
+      const bytes = await content;
+      const replacement =
+        bytes === null
+          ? `data:image/svg+xml;utf8,${encodeURIComponent(brokenImagePlaceholderSvg(resolvedPath))}`
+          : `data:${mimeTypeFor(resolvedPath)};base64,${arrayBufferToBase64(bytes)}`;
+
+      // Asciidoctor prepends its default `images/` directory to a local
+      // target. Replacing only the placeholder would leave `images/data:…`,
+      // which the browser treats as a relative URL. Replace the whole src
+      // value so both successful images and fallback SVGs are valid data URIs.
+      result = result.replace(new RegExp(`(src=")[^"]*${placeholder}[^"]*(")`, "g"), `$1${replacement}$2`);
     })
   );
 

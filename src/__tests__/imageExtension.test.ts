@@ -12,6 +12,7 @@ vi.mock("../services/gitService", () => ({
 }));
 
 const { renderAsciidoc } = await import("../renderer/asciidocRenderer");
+const { getRepoBinaryContent } = await import("../services/gitService");
 
 function contextFor(filePath: string): RenderContext {
   return { projectId: "proj", repositoryId: "repo", version: "main", filePath };
@@ -34,7 +35,16 @@ describe("block image resolution", () => {
     const source = "= Doc\n\nimage::missing.png[]\n";
     const html = await renderAsciidoc(source, contextFor("/docs/main.adoc"));
 
+    expect(html).toContain('src="data:image/svg+xml;utf8,');
     expect(html).toContain("Could%20not%20load%20image");
+    expect(html).not.toContain("images/data:image");
+  });
+
+  it("fetches a repeated image only once", async () => {
+    const source = "= Doc\n\nimage::diagram.svg[]\n\nimage::diagram.svg[]\n";
+    await renderAsciidoc(source, contextFor("/docs/main.adoc"));
+
+    expect(getRepoBinaryContent).toHaveBeenCalledTimes(1);
   });
 
   it("leaves absolute image URLs untouched", async () => {

@@ -5,7 +5,9 @@ import type { GitItem, GitRepository } from "azure-devops-extension-api/Git";
 import { renderAsciidoc } from "../renderer/asciidocRenderer";
 import { getRepoFileContent, getRepoBinaryContent } from "../services/gitService";
 import { mimeTypeFor } from "../renderer/imageExtension";
+import { highlightSourceBlocks } from "../renderer/syntaxHighlighting";
 import type { RenderContext } from "../types";
+import "highlight.js/styles/github.css";
 import { buildTree, sortedTreeEntries, type TreeFolder, type FileEntry, type FileKind } from "./tree";
 import { detectCurrentRepository } from "./currentRepo";
 import { readSelectedPathFromUrl, writeSelectedPathToUrl } from "./urlState";
@@ -44,6 +46,7 @@ function showContent(html: string): void {
   status.hidden = true;
   content.hidden = false;
   content.innerHTML = html;
+  highlightSourceBlocks(content);
 }
 
 function showImage(dataUri: string, path: string): void {
