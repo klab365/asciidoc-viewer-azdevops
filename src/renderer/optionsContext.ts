@@ -14,18 +14,20 @@ export function extractRenderContext(options: unknown): RenderContext | null {
     return null;
   }
 
-  const o = options as Record<string, any>;
-  const candidates = [o, o.context, o.item].filter((v) => v && typeof v === "object");
+  const o = options as Record<string, unknown>;
+  const candidates = [o, o.context, o.item].filter(
+    (v): v is Record<string, unknown> => !!v && typeof v === "object"
+  );
 
   const pick = (keys: string[]): string | undefined => {
     for (const candidate of candidates) {
       for (const key of keys) {
-        const value = candidate?.[key];
+        const value = candidate[key];
         if (typeof value === "string" && value.length > 0) {
           return value;
         }
-        if (value && typeof value === "object" && typeof value.id === "string") {
-          return value.id;
+        if (value && typeof value === "object" && typeof (value as Record<string, unknown>).id === "string") {
+          return (value as Record<string, unknown>).id as string;
         }
       }
     }
