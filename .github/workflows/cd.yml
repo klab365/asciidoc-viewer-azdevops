@@ -18,14 +18,20 @@ jobs:
       - name: Install dependencies
         run: mise run install
 
-      - name: Verify tag matches package.json version
+      - name: Verify tag matches package.json and vss-extension.json versions
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
           PKG_VERSION="$(node -p "require('./package.json').version")"
-          echo "Tag version:     $TAG_VERSION"
-          echo "package.json:    $PKG_VERSION"
+          MANIFEST_VERSION="$(node -p "require('./vss-extension.json').version")"
+          echo "Tag version:            $TAG_VERSION"
+          echo "package.json:           $PKG_VERSION"
+          echo "vss-extension.json:     $MANIFEST_VERSION"
           if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
             echo "::error::Tag ($GITHUB_REF_NAME) does not match package.json version ($PKG_VERSION). Update package.json and re-tag."
+            exit 1
+          fi
+          if [ "$TAG_VERSION" != "$MANIFEST_VERSION" ]; then
+            echo "::error::Tag ($GITHUB_REF_NAME) does not match vss-extension.json version ($MANIFEST_VERSION). Update vss-extension.json and re-tag."
             exit 1
           fi
           echo "VERSION=$TAG_VERSION" >> "$GITHUB_ENV"
@@ -36,18 +42,37 @@ jobs:
       - name: Build
         run: mise run build
 
+      - name: Package .vsix (always produced, no Marketplace interaction)
+        run: |
+          mise exec -- tfx extension create \
+            --manifest-globs vss-extension.json \
+            --override "{\"version\":\"${{ env.VERSION }}\"}" \
+            --output-path "extension-${{ env.VERSION }}.vsix"
+
+      # Uploaded before the (potentially flaky) publish step, so the .vsix is
+      # always available for manual upload — see the known tfx/Marketplace
+      # "create new extension" timeout issue documented in plan.md.
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-${{ env.VERSION }}
+          path: extension-${{ env.VERSION }}.vsix
+          retention-days: 90
+
       - name: Publish to Visual Studio Marketplace
+        id: publish
+        continue-on-error: true
         env:
           MARKETPLACE_PAT: ${{ secrets.MARKETPLACE_PAT }}
         run: |
           mise exec -- tfx extension publish \
-            --manifest-globs vss-extension.json \
-            --token "$MARKETPLACE_PAT" \
-            --override "{\"version\":\"${{ env.VERSION }}\"}"
+            --vsix "extension-${{ env.VERSION }}.vsix" \
+            --token "$MARKETPLACE_PAT"
 
-      - name: Upload published .vsix artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: extension-vsix-${{ env.VERSION }}
-          path: "*.vsix"
-          retention-days: 90
+      - name: Publish result
+        run: |
+          if [ "${{ steps.publish.outcome }}" = "success" ]; then
+            echo "✅ Published version ${{ env.VERSION }} to the Marketplace."
+          else
+            echo "::warning::Automatic publish failed (known tfx/Marketplace flakiness on first-time 'create extension' calls — see plan.md). Download the 'extension-${{ env.VERSION }}' artifact from this run and upload it manually at https://marketplace.visualstudio.com/manage/publishers/burak-kizilkaya"
+          fi
