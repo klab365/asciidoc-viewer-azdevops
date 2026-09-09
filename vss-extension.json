@@ -4,7 +4,7 @@
   "publisher": "klab365",
   "version": "1.0.0",
   "name": "AsciiDoc Viewer",
-  "description": "Preview AsciiDoc (.adoc/.asciidoc) files directly in Azure Repos, with local include:: resolution.",
+  "description": "Preview AsciiDoc (.adoc/.asciidoc) files directly in Azure Repos.",
   "public": true,
   "categories": ["Azure Repos"],
   "tags": ["asciidoc", "preview", "documentation", "repos"],
@@ -40,6 +40,10 @@
   "files": [
     {
       "path": "dist",
+      "addressable": true
+    },
+    {
+      "path": "images/screenshots",
       "addressable": true
     }
   ],

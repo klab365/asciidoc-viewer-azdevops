@@ -18,9 +18,6 @@ and read it without leaving Azure DevOps.
 
 ![Dark theme and admonitions](images/screenshots/03-dark-theme.png)
 
-> The diagram and dark-theme images are placeholders and should be replaced
-> with product screenshots before Marketplace publication.
-
 ## Features
 
 - Browse `.adoc` and `.asciidoc` files in the repository selected in the
