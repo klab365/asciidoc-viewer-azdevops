@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AsciiDoc Viewer</title>
+    <link rel="stylesheet" href="../renderer/styles/main.css" />
+    <link rel="stylesheet" href="../hub/hub.css" />
+  </head>
+  <body>
+    <div class="hub-toolbar">
+      <label>
+        Repository
+        <select id="repo-select"></select>
+      </label>
+      <label>
+        File path
+        <input id="file-path" type="text" placeholder="/docs/readme.adoc" />
+      </label>
+      <button id="preview-button" type="button">Preview</button>
+    </div>
+    <div id="status" class="status">Select a repository and a file path, then click Preview.</div>
+    <div id="content" class="asciidoc-content" hidden></div>
+    <script type="module" src="../hub/index.ts"></script>
+  </body>
+</html>
