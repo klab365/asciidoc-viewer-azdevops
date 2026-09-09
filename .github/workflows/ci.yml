@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: "Install mise (pinned tools: Node, tfx-cli, vite)"
+        uses: jdx/mise-action@v2
+
+      - name: Install dependencies
+        run: mise run install
+
+      - name: Lint
+        run: mise run lint
+
+      - name: Test
+        run: mise run test
+
+      - name: Build
+        run: mise run build
+
+      - name: Dry-run package (validates vss-extension.json + build output, no publish)
+        run: mise run package
+
+      - name: Upload .vsix artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-vsix
+          path: "*.vsix"
+          retention-days: 14

@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.vsix
+
+# mise
+.mise.local.toml
+
+# Logs
+npm-debug.log*
+*.log
+
+# Editor/OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local

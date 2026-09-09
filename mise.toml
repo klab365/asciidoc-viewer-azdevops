@@ -1,0 +1,45 @@
+[tools]
+node = "24.20.0"
+"npm:tfx-cli" = "0.24.0"
+"npm:vite" = "latest"
+
+[env]
+_.file = ".env"
+
+[tasks.install]
+description = "Install npm dependencies (project libs, not CLI tools)"
+run = "npm install"
+
+[tasks.build]
+description = "Build the extension bundle"
+depends = ["install"]
+run = "vite build"
+
+[tasks.watch]
+description = "Build in watch mode for local development"
+depends = ["install"]
+run = "vite build --watch"
+
+[tasks.package]
+description = "Build and package the extension as .vsix using tfx-cli"
+depends = ["build"]
+run = "tfx extension create --manifest-globs vss-extension.json"
+
+[tasks.lint]
+description = "Run linter"
+depends = ["install"]
+run = "npm run lint"
+
+[tasks.test]
+description = "Run tests"
+depends = ["install"]
+run = "npm test"
+
+[tasks.clean]
+description = "Remove build artifacts"
+run = "rm -rf dist *.vsix"
+
+[tasks.publish]
+description = "Build and publish the extension to the Marketplace (uses $MARKETPLACE_PAT from .env)"
+depends = ["build"]
+run = "tfx extension publish --manifest-globs vss-extension.json --token \"$MARKETPLACE_PAT\""

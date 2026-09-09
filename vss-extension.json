@@ -1,0 +1,60 @@
+{
+  "manifestVersion": 1,
+  "id": "asciidoc-viewer-azdevops",
+  "publisher": "klab365",
+  "version": "0.1.0",
+  "name": "AsciiDoc Viewer",
+  "description": "Preview AsciiDoc (.adoc/.asciidoc) files directly in Azure Repos, with local include:: resolution.",
+  "public": false,
+  "categories": ["Azure Repos"],
+  "tags": ["asciidoc", "preview", "documentation", "repos"],
+  "icons": {
+    "default": "images/icon.png"
+  },
+  "content": {
+    "details": {
+      "path": "overview.md"
+    },
+    "license": {
+      "path": "LICENSE"
+    }
+  },
+  "links": {
+    "getstarted": { "uri": "https://github.com/klab365/asciidoc-viewer-azdevops" },
+    "support": { "uri": "https://github.com/klab365/asciidoc-viewer-azdevops/issues" },
+    "repository": { "uri": "https://github.com/klab365/asciidoc-viewer-azdevops" }
+  },
+  "repository": {
+    "type": "git",
+    "uri": "https://github.com/klab365/asciidoc-viewer-azdevops"
+  },
+  "branding": {
+    "color": "rgb(190, 39, 3)",
+    "theme": "light"
+  },
+  "targets": [
+    {
+      "id": "Microsoft.VisualStudio.Services"
+    }
+  ],
+  "files": [
+    {
+      "path": "dist",
+      "addressable": true
+    }
+  ],
+  "contributions": [
+    {
+      "id": "asciidoc-preview-renderer",
+      "type": "ms.vss-web.action",
+      "description": "Renders .adoc/.asciidoc files as a Preview tab in Azure Repos.",
+      "targets": ["ms.vss-code-web.content-renderer-collection"],
+      "properties": {
+        "uri": "dist/index.html",
+        "text": "AsciiDoc Preview",
+        "title": "AsciiDoc Preview",
+        "fileExtensions": ["adoc", "asciidoc"]
+      }
+    }
+  ]
+}
