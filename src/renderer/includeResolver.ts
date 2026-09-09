@@ -2,6 +2,7 @@ import { Extensions } from "@asciidoctor/core";
 import type { PreprocessorReader } from "@asciidoctor/core";
 import { getRepoFileContent } from "../services/gitService";
 import { dirnameOf, resolveRepoRelativePath, type RenderContext } from "../types";
+import { registerDiagramExtensions } from "./diagramExtension";
 
 /**
  * `PreprocessorReader` tracks the directory of the file currently being read
@@ -23,7 +24,9 @@ const CIRCULAR_PLACEHOLDER = (path: string): string =>
 /**
  * Registers a custom Asciidoctor IncludeProcessor that resolves
  * `include::target[]` directives against files in the same Azure Repos
- * repository/branch as the file currently being previewed.
+ * repository/branch as the file currently being previewed, plus block
+ * processors that render PlantUML/Mermaid/GraphViz/... diagram blocks via
+ * Kroki / mermaid.ink (see {@link registerDiagramExtensions}).
  *
  * Must be used together with the `base_dir` and `attributes.docfile` convert
  * options (see {@link buildConvertOptions}) — without them, the directory of
@@ -32,6 +35,8 @@ const CIRCULAR_PLACEHOLDER = (path: string): string =>
 export function createIncludeExtensionRegistry(context: RenderContext) {
   const mainFileDir = dirnameOf(context.filePath);
   const registry = Extensions.create();
+
+  registerDiagramExtensions(registry);
 
   registry.includeProcessor(function (this: { process: (fn: IncludeProcessFn) => void }) {
     this.process(async (_doc, reader, target, attributes) => {
