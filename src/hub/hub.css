@@ -48,6 +48,22 @@ body {
   min-height: 0;
 }
 
+.file-tree-toggle {
+  flex: 0 0 28px;
+  border: 0;
+  border-right: 1px solid var(--palette-black-alpha-10, #ddd);
+  background: var(--background-color, #fff);
+  color: var(--text-secondary-color, #666);
+  cursor: pointer;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.file-tree-toggle:hover {
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
+  color: var(--text-primary-color, #1b1b1b);
+}
+
 .file-tree {
   flex: 0 0 280px;
   overflow-y: auto;

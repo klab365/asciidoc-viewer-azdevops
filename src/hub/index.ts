@@ -25,12 +25,13 @@ function getElements() {
   const repoToolbar = document.getElementById("repo-toolbar");
   const repoSelect = document.getElementById("repo-select") as HTMLSelectElement | null;
   const fileTree = document.getElementById("file-tree");
+  const fileTreeToggle = document.getElementById("file-tree-toggle") as HTMLButtonElement | null;
   const status = document.getElementById("status");
   const content = document.getElementById("content");
-  if (!repoToolbar || !repoSelect || !fileTree || !status || !content) {
+  if (!repoToolbar || !repoSelect || !fileTree || !fileTreeToggle || !status || !content) {
     throw new Error("Hub page is missing expected elements.");
   }
-  return { repoToolbar, repoSelect, fileTree, status, content };
+  return { repoToolbar, repoSelect, fileTree, fileTreeToggle, status, content };
 }
 
 function showStatus(message: string, isError = false): void {
@@ -139,7 +140,7 @@ async function main(): Promise<void> {
   await SDK.init({ loaded: false, applyTheme: true });
   await SDK.ready();
 
-  const { repoToolbar, repoSelect, fileTree } = getElements();
+  const { repoToolbar, repoSelect, fileTree, fileTreeToggle } = getElements();
   const webContext = SDK.getWebContext();
   const projectId = webContext.project?.id;
 
@@ -174,6 +175,14 @@ async function main(): Promise<void> {
   }
 
   let selectedButton: HTMLButtonElement | null = null;
+
+  fileTreeToggle.addEventListener("click", () => {
+    fileTree.hidden = !fileTree.hidden;
+    const isExpanded = !fileTree.hidden;
+    fileTreeToggle.textContent = isExpanded ? "‹" : "›";
+    fileTreeToggle.setAttribute("aria-expanded", String(isExpanded));
+    fileTreeToggle.title = isExpanded ? "Hide file tree" : "Show file tree";
+  });
 
   function selectFileButton(button: HTMLButtonElement): void {
     selectedButton?.parentElement?.classList.remove("selected");
