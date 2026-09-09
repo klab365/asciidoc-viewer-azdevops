@@ -30,6 +30,16 @@ async function execute(actionContext: unknown): Promise<void> {
       HOST_PAGE_LAYOUT_SERVICE_ID
     );
 
+    // Diagnostic: a plain message dialog needs no custom contribution at
+    // all. If this appears but the custom dialog below stays empty, the
+    // problem is isolated to resolving/loading the "asciidoc-preview-dialog"
+    // contribution specifically, not IHostPageLayoutService in general.
+    // Safe to remove once the custom dialog is confirmed working.
+    dialogService.openMessageDialog(
+      `Diagnostic: HostPageLayoutService works. About to open dialog contribution: ${dialogContributionId}`,
+      { title: "AsciiDoc Preview — Diagnostic" }
+    );
+
     dialogService.openCustomDialog(dialogContributionId, {
       title: "AsciiDoc Preview",
       configuration: {
