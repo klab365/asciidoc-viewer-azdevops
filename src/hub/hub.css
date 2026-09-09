@@ -67,11 +67,25 @@ body {
   padding-left: 8px;
 }
 
-.file-tree .tree-folder > .tree-label {
+.file-tree details > ul {
+  padding-left: 20px;
+}
+
+.file-tree .tree-folder summary.tree-label {
   font-weight: 600;
   color: var(--text-secondary-color, #444);
   padding: 3px 8px;
-  display: block;
+  cursor: pointer;
+  border-radius: 3px;
+  list-style: none;
+}
+
+.file-tree .tree-folder summary.tree-label::-webkit-details-marker {
+  display: none;
+}
+
+.file-tree .tree-folder summary.tree-label:hover {
+  background: var(--palette-black-alpha-6, rgba(0, 0, 0, 0.06));
 }
 
 .file-tree .tree-file button {
@@ -109,4 +123,10 @@ body {
 .hub-main .status,
 .hub-main .asciidoc-content {
   padding: 16px 24px;
+}
+
+.hub-main .standalone-image {
+  display: block;
+  max-width: 100%;
+  margin: 16px 24px;
 }

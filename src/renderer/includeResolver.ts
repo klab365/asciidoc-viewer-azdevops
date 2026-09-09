@@ -3,6 +3,7 @@ import type { PreprocessorReader } from "@asciidoctor/core";
 import { getRepoFileContent } from "../services/gitService";
 import { dirnameOf, resolveRepoRelativePath, type RenderContext } from "../types";
 import { registerDiagramExtensions } from "./diagramExtension";
+import { registerImageExtension, type PendingImage } from "./imageExtension";
 
 /**
  * `PreprocessorReader` tracks the directory of the file currently being read
@@ -26,17 +27,20 @@ const CIRCULAR_PLACEHOLDER = (path: string): string =>
  * `include::target[]` directives against files in the same Azure Repos
  * repository/branch as the file currently being previewed, plus block
  * processors that render PlantUML/Mermaid/GraphViz/... diagram blocks via
- * Kroki / mermaid.ink (see {@link registerDiagramExtensions}).
+ * Kroki / mermaid.ink (see {@link registerDiagramExtensions}) and a
+ * TreeProcessor that rewrites block-image targets to placeholders for later
+ * resolution (see {@link registerImageExtension}).
  *
  * Must be used together with the `base_dir` and `attributes.docfile` convert
  * options (see {@link buildConvertOptions}) — without them, the directory of
  * the very first level of includes cannot be determined correctly.
  */
-export function createIncludeExtensionRegistry(context: RenderContext) {
+export function createIncludeExtensionRegistry(context: RenderContext, pendingImages: PendingImage[]) {
   const mainFileDir = dirnameOf(context.filePath);
   const registry = Extensions.create();
 
   registerDiagramExtensions(registry);
+  registerImageExtension(registry, mainFileDir, pendingImages);
 
   registry.includeProcessor(function (this: { process: (fn: IncludeProcessFn) => void }) {
     this.process(async (_doc, reader, target, attributes) => {
@@ -70,12 +74,12 @@ export function createIncludeExtensionRegistry(context: RenderContext) {
 }
 
 /** Convert options required for the include processor to resolve paths correctly. */
-export function buildConvertOptions(context: RenderContext) {
+export function buildConvertOptions(context: RenderContext, pendingImages: PendingImage[]) {
   return {
     safe: "safe" as const,
     base_dir: dirnameOf(context.filePath),
     attributes: { docfile: context.filePath },
-    extension_registry: createIncludeExtensionRegistry(context)
+    extension_registry: createIncludeExtensionRegistry(context, pendingImages)
   };
 }
 

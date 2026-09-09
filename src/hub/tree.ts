@@ -1,3 +1,5 @@
+export type FileKind = "adoc" | "image";
+
 export interface TreeFolder {
   type: "folder";
   name: string;
@@ -8,21 +10,27 @@ export interface TreeFile {
   type: "file";
   name: string;
   path: string;
+  kind: FileKind;
 }
 
 export type TreeNode = TreeFolder | TreeFile;
 
-/** Builds a nested folder/file tree from a flat list of repo-relative file paths. */
-export function buildTree(paths: string[]): TreeFolder {
+export interface FileEntry {
+  path: string;
+  kind: FileKind;
+}
+
+/** Builds a nested folder/file tree from a flat list of repo-relative file entries. */
+export function buildTree(entries: FileEntry[]): TreeFolder {
   const root: TreeFolder = { type: "folder", name: "", children: new Map() };
 
-  for (const path of paths) {
+  for (const { path, kind } of entries) {
     const segments = path.split("/").filter(Boolean);
     let current = root;
     segments.forEach((segment, index) => {
       const isLast = index === segments.length - 1;
       if (isLast) {
-        current.children.set(segment, { type: "file", name: segment, path });
+        current.children.set(segment, { type: "file", name: segment, path, kind });
         return;
       }
       const existing = current.children.get(segment);
