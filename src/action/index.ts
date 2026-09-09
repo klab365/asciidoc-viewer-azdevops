@@ -1,6 +1,6 @@
 import * as SDK from "azure-devops-extension-sdk";
 import type { IHostPageLayoutService } from "azure-devops-extension-api/Common";
-import { extractRenderContext } from "../renderer/optionsContext";
+import { extractRenderContext } from "./actionContext";
 
 const DIALOG_CONTRIBUTION_SHORT_ID = "asciidoc-preview-dialog";
 
