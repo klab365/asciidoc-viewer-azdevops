@@ -1,8 +1,8 @@
 {
   "manifestVersion": 1,
   "id": "asciidoc-viewer-azdevops",
-  "publisher": "burak-kizilkaya",
-  "version": "0.1.0",
+  "publisher": "klab365",
+  "version": "0.2.0",
   "name": "AsciiDoc Viewer",
   "description": "Preview AsciiDoc (.adoc/.asciidoc) files directly in Azure Repos, with local include:: resolution.",
   "public": false,
@@ -45,15 +45,25 @@
   ],
   "contributions": [
     {
-      "id": "asciidoc-preview-renderer",
+      "id": "asciidoc-preview-action",
       "type": "ms.vss-web.action",
-      "description": "Renders .adoc/.asciidoc files as a Preview tab in Azure Repos.",
-      "targets": ["ms.vss-code-web.content-renderer-collection"],
+      "description": "Opens a preview dialog for .adoc/.asciidoc files in Azure Repos.",
+      "targets": ["ms.vss-code-web.source-item-menu"],
       "properties": {
-        "uri": "dist/index.html",
         "text": "AsciiDoc Preview",
-        "title": "AsciiDoc Preview",
-        "fileExtensions": ["adoc", "asciidoc"]
+        "title": "Preview this AsciiDoc file",
+        "icon": "images/icon.png",
+        "group": "actions",
+        "uri": "dist/action.html"
+      }
+    },
+    {
+      "id": "asciidoc-preview-dialog",
+      "type": "ms.vss-web.control",
+      "description": "Dialog content that renders the AsciiDoc preview.",
+      "targets": [],
+      "properties": {
+        "uri": "dist/renderer.html"
       }
     }
   ]

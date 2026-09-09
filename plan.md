@@ -1,57 +1,55 @@
-# Plan: AsciiDoc-Preview als Repo-Datei-Renderer Extension (Azure DevOps)
+# Plan: AsciiDoc-Preview für Azure DevOps (Menü-Aktion + Dialog)
 
 ## Goal
-Klickt man in Azure DevOps Repos auf eine `.adoc`-Datei, erscheint (wie bei `.md`)
-automatisch ein zusätzlicher **"Preview"-Tab**, der den AsciiDoc-Inhalt als
-gerendertes HTML anzeigt. Lokale `include::`-Direktiven (Dateien im selben
-Repo) werden dabei aufgelöst und eingebettet.
+Eine `.adoc`-Datei in Azure Repos lässt sich mit **einem Klick im
+Kontextmenü ("AsciiDoc Preview")** als gerendertes HTML in einem Dialog
+anzeigen — so nah wie mit öffentlichen, verifiziert funktionierenden
+Azure-DevOps-Extensibility-Punkten möglich am ursprünglich gewünschten
+"Preview-Tab wie bei Markdown"-Erlebnis (das echte Markdown-Preview-Tab ist
+fest in Azure DevOps eingebaut und nicht für Drittanbieter-Dateitypen
+nutzbar, siehe `## Approach`). Lokale `include::`-Direktiven (Dateien im
+selben Repo) werden dabei aufgelöst und eingebettet.
 
 ## Approach
-> **Update nach weiterer Recherche:** Der Contribution-Point
-> `ms.vss-code-web.content-renderer-collection` (Ziel: die "Preview"-Tab-
-> Sammlung in der Azure-Repos-Datei-Ansicht) **existiert wirklich** und ist
-> genau das, was wir brauchen — verifiziert anhand des offiziellen
-> Microsoft-Samples [`custom-content-renderer`](https://github.com/microsoft/vsts-extension-samples/tree/master/custom-content-renderer).
-> (Der zuvor angenommene Name `ms.vss-code-web.file-content-renderer` war
-> falsch/erfunden — der echte Contribution-**Typ** ist `ms.vss-web.action`,
-> nur das **Ziel** (`targets`) ist `ms.vss-code-web.content-renderer-collection`.)
+> **Update nach Live-Test (empirisch bestätigt):** Der Contribution-Point
+> `ms.vss-code-web.content-renderer-collection` wurde installiert und in
+> einer echten Azure DevOps Organisation getestet — **er zeigt keinen
+> "Preview"-Tab für `.adoc`-Dateien an** (kein einziger Netzwerk-Request zu
+> `dist/index.html` im Browser-Network-Tab, während der eingebaute
+> Markdown-Preview-Tab normal funktioniert). Dieser Contribution-Point stammt
+> aus einem einzigen, seit 2018 nie aktualisierten Microsoft-Sample und taucht
+> in der aktuellen offiziellen Doku nirgends auf — er ist in heutigem Azure
+> DevOps (2026) offenbar nicht (mehr) wirksam für Drittanbieter-Extensions.
 >
-> Damit ist der ursprüngliche Wunsch — Datei anklicken, auf **"Preview"-Tab**
-> klicken, gerendertes Dokument sehen, genau wie bei Markdown — direkt
-> umsetzbar. Der eingebaute Markdown-Renderer registriert sich vermutlich am
-> selben Contribution-Point; unsere Extension registriert sich zusätzlich für
-> `.adoc`/`.asciidoc`.
+> **Neuer, verifiziert existierender Ansatz: Kontextmenü-Aktion + Dialog.**
+> Diese Bausteine sind (im Gegensatz zum vorigen Versuch) sowohl in der
+> aktuellen offiziellen Doku (`docs/extend/reference/targets/overview.md`,
+> `docs/extend/develop/add-action.md`) als auch **typisiert im aktuell
+> installierten `azure-devops-extension-api`-Paket** vorhanden
+> (`azure-devops-extension-api/Common/CommonServices.d.ts` —
+> `IHostPageLayoutService.openCustomDialog()`), also deutlich solider
+> abgesichert:
 >
-> Bekannter Vertrag (aus dem Sample verifiziert):
-> ```json
-> {
->   "id": "showRenderer",
->   "type": "ms.vss-web.action",
->   "targets": ["ms.vss-code-web.content-renderer-collection"],
->   "properties": {
->     "uri": "render.html",
->     "text": "AsciiDoc Preview",
->     "fileExtensions": ["adoc", "asciidoc"],
->     "title": "ms.vss-code-web.content-renderer-collection"
->   }
-> }
-> ```
-> ```js
-> SDK.register(SDK.getContributionId(), () => ({
->   renderContent: (rawContent, options) => { /* ... */ }
-> }));
-> ```
-> Der Host übergibt den Dateiinhalt (`rawContent`) direkt als String — für
-> die Hauptdatei brauchen wir also **keinen** eigenen Git-REST-Call. Nur für
-> lokale `include::`-Ziele muss weiterhin per Git-API nachgeladen werden.
+> 1. **Menü-Aktion** (`ms.vss-web.action`, Ziel
+>    `ms.vss-code-web.source-item-menu`) erscheint im Kontextmenü einer Datei
+>    in Azure Repos ("AsciiDoc Preview"). Ihr `execute(actionContext)`-Handler
+>    öffnet einen Dialog über
+>    `SDK.getService("ms.vss-features.host-page-layout-service")` →
+>    `dialogService.openCustomDialog(dialogContributionId, { configuration })`.
+> 2. **Dialog-Content-Contribution** (`ms.vss-web.control`, `targets: []`,
+>    wird nur dynamisch per ID aufgerufen, nicht an einen festen Ort
+>    gebunden) lädt unsere Renderer-Seite, die den Dateiinhalt selbst per
+>    Git-REST lädt (Pfad/Repo/Projekt kommen über `SDK.getConfiguration()`
+>    aus der `configuration`, die die Menü-Aktion beim Öffnen mitgegeben hat).
 >
-> **Restrisiko:** Das Sample stammt aus 2018 (altes `vss-web-extension-sdk`).
-> Die genaue Struktur von `options` (z. B. ob `project`/`repository`/`path`/
-> `version` enthalten sind, die wir für die Include-Auflösung brauchen) ist
-> nicht weiter dokumentiert und muss zur Laufzeit verifiziert werden
-> (`console.log(options)` in einer frühen Testinstallation, siehe Schritt 3
-> und 10). Ebenso muss verifiziert werden, dass der Contribution-Point in
-> aktuellen Azure DevOps Services noch genauso funktioniert.
+> **Restrisiko:** Die genaue Struktur von `actionContext` (welche Felder
+> Projekt/Repo/Pfad/Version enthalten) ist — wie zuvor bei `options` — nicht
+> öffentlich dokumentiert. Daher: `console.debug(actionContext)` beim
+> Auslösen der Aktion, **plus** ein eingebauter Debug-Fallback: kann der
+> Kontext nicht extrahiert werden, zeigt der Dialog den rohen
+> `actionContext` als JSON an (analog zum offiziellen "showProperties"-Sample
+> aus `vsts-extension-samples/contributions-guide`, das genau dafür gedacht
+> ist, Contribution-Kontexte zur Laufzeit zu inspizieren).
 
 Azure DevOps Extensions basieren auf dem **Azure DevOps Extension SDK**
 (`azure-devops-extension-sdk` / `azure-devops-extension-api`) + einer
@@ -78,39 +76,51 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
        `watch`, `package` (ruft `tfx extension create` direkt auf), `lint`,
        `test`, `clean` — einheitlicher Einstiegspunkt über `mise run <task>`.
 
-2. **Extension-Manifest mit Content-Renderer-Contribution**
+2. **Extension-Manifest mit Menü-Aktion + Dialog-Contribution**
    - Files: `vss-extension.json`
-   - Contribution-Typ `ms.vss-web.action`, Ziel (`targets`):
-     `ms.vss-code-web.content-renderer-collection`.
-   - Properties: `uri` (Pfad zur Renderer-HTML-Seite), `text` (Label des
-     Preview-Eintrags, z. B. "AsciiDoc Preview"), `fileExtensions:
-     ["adoc", "asciidoc"]` (ohne Punkt!), `title`.
+   - Contribution 1 (`asciidoc-preview-action`): Typ `ms.vss-web.action`,
+     Ziel `ms.vss-code-web.source-item-menu` (Kontextmenü auf Dateien in
+     Azure Repos, Grid- und Tree-Ansicht kombiniert). Properties: `text`
+     ("AsciiDoc Preview"), `title`, `icon`, `group: "actions"`, `uri:
+     "dist/action.html"`.
+   - Contribution 2 (`asciidoc-preview-dialog`): Typ `ms.vss-web.control`,
+     `targets: []` (wird nicht an einen festen Ort gebunden, sondern nur
+     dynamisch per voller Contribution-ID von der Menü-Aktion aus geöffnet).
+     Properties: `uri: "dist/renderer.html"`.
 
-3. **Renderer-Seite implementieren**
-   - Files: `src/renderer/index.html`, `src/renderer/index.ts`
-   - `SDK.init()`, dann `SDK.ready()` abwarten, dann
-     `SDK.register(SDK.getContributionId(), () => ({ renderContent }))`
-     registrieren.
-   - `renderContent(rawContent: string, options: unknown)`: Hauptinhalt
-     kommt direkt als `rawContent` — kein Git-REST-Call nötig für die
-     Hauptdatei.
-   - **Wichtig, zuerst verifizieren:** `console.log(options)` in einer
-     frühen Testinstallation (Schritt 10 vorziehen für diesen Teil), um zu
-     sehen, welche Kontextinfos (`project`, `repository`, `path`, `version`)
-     tatsächlich enthalten sind — diese werden für die Include-Auflösung in
-     Schritt 4/5 gebraucht. Falls `options` nicht ausreicht, alternativ
-     `SDK.getWebContext()` / `SDK.getConfiguration()` prüfen oder Datei-Pfad
-     aus der Browser-URL der Host-Seite ableiten (`options` sollte das aber
-     nicht nötig machen).
+3. **Menü-Aktion + Dialog implementieren**
+   - Files: `src/pages/action.html`, `src/action/index.ts`,
+     `src/pages/renderer.html`, `src/renderer/index.ts`
+   - **Aktion** (`src/action/index.ts`): `SDK.init()`, `SDK.ready()`, dann
+     `SDK.register(SDK.getContributionId(), () => ({ execute }))`.
+     `execute(actionContext)` extrahiert Projekt/Repo/Pfad/Version (siehe
+     `extractRenderContext`, wiederverwendet aus
+     `src/renderer/optionsContext.ts`) und öffnet den Dialog via
+     `SDK.getService("ms.vss-features.host-page-layout-service")` →
+     `dialogService.openCustomDialog("<publisher>.<extensionId>.
+     asciidoc-preview-dialog", { title, configuration: { renderContext } })`.
+   - **Dialog** (`src/renderer/index.ts`): `SDK.init()`, `SDK.ready()`, liest
+     `SDK.getConfiguration()` für den `renderContext`, lädt den
+     Hauptdatei-Inhalt selbst per `getRepoFileContent()` (Git-REST, da der
+     Dialog — anders als der verworfene Content-Renderer-Ansatz — den
+     Inhalt nicht automatisch mitbekommt), rendert und zeigt ihn an.
+   - **Wichtig, zuerst verifizieren:** `console.debug(actionContext)` in
+     `execute()` sowie ein eingebauter Debug-Fallback im Dialog: kann
+     `extractRenderContext` keinen vollständigen Kontext aus `actionContext`
+     extrahieren, zeigt der Dialog den rohen `actionContext` als JSON an
+     (siehe Schritt 10 für den Live-Test in einer echten Organisation).
 
 4. **AsciiDoc-Inhalt + Kontext holen**
-   - Files: `src/services/contentService.ts`
-   - Dateiinhalt sichern, außerdem Kontextinfos für Include-Auflösung:
-     `projectId`, `repositoryId`, `version` (Branch/Commit), `filePath`
-     (Verzeichnis der aktuellen Datei) — gebündelt in einem
-     `RenderContext`-Objekt.
-   - Falls Content nicht direkt im `context` enthalten ist: nachladen via
-     `GitRestClient.getItemContent()` (`azure-devops-extension-api`).
+   - Files: `src/services/gitService.ts`, `src/types.ts`,
+     `src/renderer/optionsContext.ts`
+   - `RenderContext` (`projectId`, `repositoryId`, `version`, `filePath`)
+     wird aus dem `actionContext` der Menü-Aktion extrahiert (siehe Schritt
+     3) und als `configuration.renderContext` an den Dialog übergeben.
+   - Der Dialog lädt den Hauptdatei-Inhalt **immer** selbst per
+     `getRepoFileContent()` (`GitRestClient.getItemContent()` aus
+     `azure-devops-extension-api`) — anders als beim ursprünglich
+     angenommenen (und verworfenen) Content-Renderer-Ansatz gibt es hier
+     keinen direkt mitgelieferten `rawContent`.
 
 5. **Lokale Includes auflösen**
    - Files: `src/renderer/includeResolver.ts`, `src/renderer/asciidocRenderer.ts`
@@ -166,8 +176,11 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
      auflösbaren Includes.
 
 8. **Build & Bundle**
-   - Files: `vite.config.ts` (oder `webpack.config.js`)
-   - Output-Pfad muss mit `uri` im Manifest übereinstimmen.
+   - Files: `vite.config.ts`
+   - Zwei HTML-Entry-Points (`src/pages/action.html`,
+     `src/pages/renderer.html`) → Output `dist/action.html` und
+     `dist/renderer.html`, müssen mit den `uri`-Properties im Manifest
+     übereinstimmen.
 
 9. **Packaging**
    - Files: `mise.toml` (Task `package`)
@@ -179,12 +192,18 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
     - Extension zunächst privat/nicht gelistet in einer Test-Organisation
       hochladen und installieren (unabhängig vom späteren öffentlichen
       Release — dient nur der Vorab-Validierung).
-    - `.adoc`-Datei mit lokalen Includes in einem Test-Repo anklicken, prüfen
-      ob **"Preview"-Tab** (analog zu Markdown) erscheint und Includes
-      korrekt aufgelöst werden.
-    - Iterativ anpassen, da genaues `options`-Datenformat (siehe Schritt 3)
-      erst zur Laufzeit sichtbar wird.
+    - `.adoc`-Datei mit lokalen Includes in einem Test-Repo öffnen, im
+      **Kontextmenü "AsciiDoc Preview"** auswählen, prüfen ob der Dialog
+      öffnet und Includes korrekt aufgelöst werden.
+    - Iterativ anpassen, da die genaue Struktur von `actionContext` (siehe
+      Schritt 3) erst zur Laufzeit sichtbar wird — der eingebaute
+      Debug-Fallback (roher `actionContext` als JSON im Dialog) hilft dabei.
     - Erst nach erfolgreichem Test in Schritt 11 öffentlich veröffentlichen.
+    - **Status:** Erster Live-Test durchgeführt — der ursprüngliche
+      Content-Renderer-Ansatz zeigte sich als nicht funktionsfähig (kein
+      Tab, kein Netzwerk-Request), daher Umstieg auf Menü-Aktion + Dialog
+      (siehe `## Approach`). Dieser neue Ansatz muss noch live getestet
+      werden.
 
 11. **Polishing & Marketplace-Veröffentlichung (public)**
     - Files: `README.md`, `overview.md` (Marketplace-Beschreibungstext),
@@ -267,11 +286,12 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
 - **Lizenz:** MIT — `LICENSE`-Datei im Repo, in `vss-extension.json`
   referenziert.
 - **Publisher:** Einzelperson (du selbst) als Marketplace-Publisher —
-  registrierte Publisher-ID: **`burak-kizilkaya`** (Name im Portal:
-  "burak.kizilkaya"). Das ist die tatsächliche ID im [Marketplace Publishing
-  Portal](https://marketplace.visualstudio.com/manage) und **nicht** identisch
-  mit dem GitHub-Org-Namen (`klab365`) — beide sind unabhängige Konten.
-  `"publisher"` in `vss-extension.json` muss exakt `burak-kizilkaya` sein.
+  registrierte Publisher-ID: **`klab365`** (identisch zum GitHub-Org-Namen,
+  bewusst so gewählt für Konsistenz). Ein früherer Testversuch lief unter der
+  Publisher-ID `burak-kizilkaya` — diese Extension wurde zwischenzeitlich
+  wieder entfernt, `klab365` ist ab Version 0.2.0 der einzige/aktuelle
+  Publisher. `"publisher"` in `vss-extension.json` muss exakt `klab365`
+  sein.
 - **Extension-`id` (technisch, in `vss-extension.json`):**
   `asciidoc-viewer-azdevops` — identisch zum GitHub-Repo-Namen, für
   Konsistenz und Wiederauffindbarkeit.
@@ -280,20 +300,18 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
   festlegen.
 
 ## Open questions
-- Konkrete Publisher-ID (Kurzname) im Marketplace Publishing Portal
-  registrieren — welcher Name soll verwendet werden?
-- Finaler Marketplace-Anzeigename (`name`-Feld) und Icon — vor Schritt 11
-  festlegen.
+- Finaler Marketplace-Anzeigename (`name`-Feld, aktuell "AsciiDoc Viewer")
+  und Icon (aktuell Platzhalter) — vor endgültiger öffentlicher
+  Veröffentlichung (Schritt 11) final festlegen.
 
 ## Risks
-- `options`-Parameter von `renderContent(rawContent, options)` ist nicht
-  öffentlich dokumentiert — Struktur muss zur Laufzeit verifiziert werden
-  (siehe Schritt 3), bevor Schritt 4/5 (Kontext für Include-Auflösung)
-  final umgesetzt werden.
-- Referenz-Sample für `content-renderer-collection` stammt aus 2018 (altes
-  SDK) — Funktionalität in aktuellen Azure DevOps Services früh (Schritt 10
-  vorgezogen) verifizieren, bevor viel Implementierungsaufwand in
-  Include-Resolution etc. investiert wird.
+- `actionContext`-Parameter von `execute(actionContext)` (Menü-Aktion) ist
+  nicht öffentlich dokumentiert — Struktur muss zur Laufzeit verifiziert
+  werden (siehe Schritt 3/10). Eingebauter Debug-Fallback zeigt den rohen
+  Kontext im Dialog an, falls die Extraktion fehlschlägt.
+- Referenz-Sample für `content-renderer-collection` (verworfener Ansatz)
+  stammt aus 2018 (altes SDK) und wurde live als nicht funktionsfähig
+  bestätigt (siehe `## Approach`) — nicht erneut versuchen.
 - Rekursive Includes bedeuten mehrere sequentielle/parallele REST-Calls beim
   Öffnen der Preview → Performance bei tief verschachtelten Dokumenten im
   Blick behalten.
@@ -311,47 +329,72 @@ statischen Web-App. AsciiDoc-Rendering erfolgt clientseitig mit
   nicht auf v3.x zurückwechseln.
 
 ## Estimated complexity
-Small–Medium — Kern (Contribution registrieren + Asciidoctor.js rendern) ist
-überschaubar, jetzt mit verifiziertem Contribution-Point deutlich sicherer;
-Hauptunsicherheit liegt in der genauen `options`-Struktur und im Umfang der
+Small–Medium — Kern (Menü-Aktion + Dialog registrieren, Asciidoctor.js
+rendern) ist überschaubar und jetzt auf verifizierten APIs aufgebaut;
+Hauptunsicherheit liegt in der genauen `actionContext`-Struktur (nur per
+Live-Test in einer echten Organisation zu klären) und im Umfang der
 Include-Attribut-Unterstützung.
 
 ## Status / Progress Log
 - [x] Schritt 1: Projekt aufsetzen (`package.json`, `tsconfig.json`, `mise.toml`,
-      `vite.config.ts`, `vitest.config.ts`)
-- [x] Schritt 2: Manifest mit Contribution (`vss-extension.json`,
-      `ms.vss-web.action` → `content-renderer-collection`)
-- [x] Schritt 3: Renderer-Seite (`src/renderer/index.ts`,
-      `src/renderer/optionsContext.ts`) — `options`-Struktur noch nicht
-      gegen echtes Azure DevOps verifiziert (siehe Risks)
+      `vite.config.ts`, `vitest.config.ts`, `eslint.config.js`)
+- [x] Schritt 2: Manifest mit Menü-Aktion + Dialog-Contribution
+      (`vss-extension.json`: `ms.vss-web.action` → `source-item-menu`,
+      `ms.vss-web.control` → Dialog)
+- [x] Schritt 3: Menü-Aktion + Dialog (`src/action/index.ts`,
+      `src/renderer/index.ts`, `src/renderer/optionsContext.ts`) —
+      `actionContext`-Struktur noch nicht gegen echtes Azure DevOps
+      verifiziert (siehe Risks); Debug-Fallback eingebaut
 - [x] Schritt 4: Inhalt + Kontext holen (`src/services/gitService.ts`,
       `src/types.ts`)
 - [x] Schritt 5: Lokale Includes auflösen (`src/renderer/includeResolver.ts`)
       — durch automatisierte Tests abgedeckt (verschachtelt, `leveloffset`,
-      Zyklus-Erkennung, nicht auflösbare/externe Includes)
+      Zyklus-Erkennung, nicht auflösbare/externe Includes), Fixtures unter
+      `src/__tests__/fixtures/`
 - [x] Schritt 6: Rendering (`src/renderer/asciidocRenderer.ts`)
 - [x] Schritt 7: Fehler-/Ladezustände (Basis in `src/renderer/index.ts`:
-      Status-Anzeige, Fehlermeldung; Feinschliff optional)
-- [x] Schritt 8: Build & Bundle (`vite.config.ts`, `mise run build`
-      erfolgreich getestet)
+      Status-Anzeige, Fehlermeldung, Debug-JSON-Dump; Feinschliff optional)
+- [x] Schritt 8: Build & Bundle (`vite.config.ts`, Multi-Page-Build
+      `action.html`/`renderer.html`, `mise run build` erfolgreich getestet)
 - [x] Schritt 9: Packaging (`mise run package` erfolgreich getestet,
       gültige `.vsix` erzeugt und Inhalt verifiziert)
-- [ ] Schritt 10: Test in Sandbox-Org (benötigt echte Azure DevOps
-      Organisation — insbesondere `options`-Struktur in Schritt 3
-      verifizieren)
+- [ ] Schritt 10: Test in Sandbox-Org — **erster Live-Test durchgeführt**:
+      Content-Renderer-Ansatz erwies sich als nicht funktionsfähig (kein
+      Tab, kein Netzwerk-Request), daher Umstieg auf Menü-Aktion + Dialog.
+      Dieser neue Ansatz muss noch live getestet werden (insbesondere
+      `actionContext`-Struktur verifizieren).
 - [ ] Schritt 11: Polishing & Marketplace-Veröffentlichung
       — **teilweise erledigt:** `overview.md` (Marketplace-Beschreibung),
       `vss-extension.json` verweist darauf, Icon vorhanden, Packaging mit
-      neuen Inhalten getestet. **Noch offen (benötigt manuelle Aktion /
-      echte Azure DevOps Org):** Publisher-Account im Marketplace Portal
-      anlegen, echte Screenshots (nach Schritt 10), finale
-      Marketplace-Review-Einreichung, `"public": true` setzen (bewusst
-      noch `false`, bis Sandbox-Test in Schritt 10 erfolgt ist).
+      neuen Inhalten getestet, Publisher final auf `klab365` gesetzt,
+      Version auf `0.2.0` erhöht. **Noch offen:** echte Screenshots (nach
+      Schritt 10), finale Marketplace-Review-Einreichung, `"public": true`
+      setzen (bewusst noch `false`, bis Sandbox-Test in Schritt 10 erfolgt
+      ist).
 - [x] Schritt 12: CI/CD via GitHub Actions (`.github/workflows/ci.yml`,
-      `.github/workflows/cd.yml`) — `MARKETPLACE_PAT`-Secret muss vor dem
-      ersten Tag-Release noch im GitHub-Repo hinterlegt werden
+      `.github/workflows/cd.yml`) — `.vsix`-Artefakt (`asciidoc-viewer-
+      azdevops-X.Y.Z.vsix`) wird in `cd.yml` immer hochgeladen, auch wenn
+      der automatische Marketplace-Publish fehlschlägt (siehe bekanntes
+      tfx/Marketplace-Problem unten); zusätzlicher `mise run publish`-Task
+      für manuelles/lokales Publizieren mit `$MARKETPLACE_PAT` aus `.env`.
 
 **Automatisierte Tests:** `src/__tests__/types.test.ts` (9 Tests, Pfad-
 Normalisierung) und `src/__tests__/asciidocRenderer.test.ts` (5 Tests,
-Include-Resolution End-to-End mit gemocktem `gitService`) — alle 14 grün
+Include-Resolution End-to-End mit gemocktem `gitService`, liest echte
+`.adoc`-Fixture-Dateien aus `src/__tests__/fixtures/`) — alle 14 grün
 (`mise run test`).
+
+**Bekanntes tfx/Marketplace-Problem (Live-Erfahrung):** Der allererste
+`tfx extension publish`-Aufruf für eine neue Extension schlägt häufig mit
+`error: Request timeout: /_apis/gallery` fehl (bekannter, seit Jahren
+gemeldeter Bug im "Create new extension"-Codepfad der Marketplace-API,
+siehe `microsoft/tfs-cli`-Issues #319/#408 — tritt sowohl lokal als auch in
+GitHub Actions auf, unabhängig vom Netzwerk). Ebenfalls aufgetreten: `403
+Forbidden` bei fehlendem PAT-Scope ("Publish new extensions to an existing
+publisher" — PAT benötigt Scope "Marketplace → Manage") und ein 404 beim
+Install-Link, solange die Extension noch im Status "Verifying" ist (nach
+manuellem Upload normal, dauert einige Minuten). **Workaround:** die
+allererste Version einer neuen Extension manuell über die Marketplace-Web-UI
+hochladen (Update-Codepfad ist zuverlässiger als Create); `cd.yml` lädt
+deshalb das `.vsix` immer als Artefakt hoch (`continue-on-error` beim
+Publish-Schritt), damit manuelles Nachholen jederzeit möglich ist.

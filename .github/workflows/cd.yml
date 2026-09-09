@@ -47,7 +47,7 @@ jobs:
           mise exec -- tfx extension create \
             --manifest-globs vss-extension.json \
             --override "{\"version\":\"${{ env.VERSION }}\"}" \
-            --output-path "extension-${{ env.VERSION }}.vsix"
+            --output-path "asciidoc-viewer-azdevops-${{ env.VERSION }}.vsix"
 
       # Uploaded before the (potentially flaky) publish step, so the .vsix is
       # always available for manual upload — see the known tfx/Marketplace
@@ -55,8 +55,8 @@ jobs:
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extension-${{ env.VERSION }}
-          path: extension-${{ env.VERSION }}.vsix
+          name: asciidoc-viewer-azdevops-${{ env.VERSION }}
+          path: asciidoc-viewer-azdevops-${{ env.VERSION }}.vsix
           retention-days: 90
 
       - name: Publish to Visual Studio Marketplace
@@ -66,7 +66,7 @@ jobs:
           MARKETPLACE_PAT: ${{ secrets.MARKETPLACE_PAT }}
         run: |
           mise exec -- tfx extension publish \
-            --vsix "extension-${{ env.VERSION }}.vsix" \
+            --vsix "asciidoc-viewer-azdevops-${{ env.VERSION }}.vsix" \
             --token "$MARKETPLACE_PAT"
 
       - name: Publish result
@@ -74,5 +74,5 @@ jobs:
           if [ "${{ steps.publish.outcome }}" = "success" ]; then
             echo "✅ Published version ${{ env.VERSION }} to the Marketplace."
           else
-            echo "::warning::Automatic publish failed (known tfx/Marketplace flakiness on first-time 'create extension' calls — see plan.md). Download the 'extension-${{ env.VERSION }}' artifact from this run and upload it manually at https://marketplace.visualstudio.com/manage/publishers/burak-kizilkaya"
+            echo "::warning::Automatic publish failed (known tfx/Marketplace flakiness on first-time 'create extension' calls — see plan.md). Download the 'asciidoc-viewer-azdevops-${{ env.VERSION }}' artifact from this run and upload it manually at https://marketplace.visualstudio.com/manage/publishers/klab365"
           fi

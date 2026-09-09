@@ -1,10 +1,11 @@
 import * as SDK from "azure-devops-extension-sdk";
 import { renderAsciidoc } from "./asciidocRenderer";
-import { extractRenderContext } from "./optionsContext";
+import { getRepoFileContent } from "../services/gitService";
 import type { RenderContext } from "../types";
 
-interface ContentRenderer {
-  renderContent(rawContent: string, options: unknown): void | Promise<void>;
+interface DialogConfiguration {
+  renderContext?: RenderContext | null;
+  rawActionContext?: unknown;
 }
 
 function getElements() {
@@ -24,6 +25,13 @@ function showStatus(message: string, isError = false): void {
   content.hidden = true;
 }
 
+function showDebugContext(rawActionContext: unknown): void {
+  const { status } = getElements();
+  const pre = document.createElement("pre");
+  pre.textContent = JSON.stringify(rawActionContext, null, 2);
+  status.appendChild(pre);
+}
+
 function showContent(html: string): void {
   const { status, content } = getElements();
   status.hidden = true;
@@ -32,47 +40,42 @@ function showContent(html: string): void {
   SDK.resize();
 }
 
-async function renderContent(rawContent: string, options: unknown): Promise<void> {
-  showStatus("Rendering AsciiDoc preview…");
+async function run(): Promise<void> {
+  await SDK.init({ loaded: false, applyTheme: true });
+  await SDK.ready();
 
-  // Log once per load to help verify the real shape of `options` against a
-  // live Azure DevOps instance (see plan.md risks) — safe to remove once
-  // confirmed stable.
-  console.debug("[asciidoc-viewer] renderContent options:", options);
+  const config = SDK.getConfiguration() as DialogConfiguration;
+  const context = config.renderContext ?? null;
 
-  const context: RenderContext | null = extractRenderContext(options);
+  if (!context) {
+    showStatus(
+      "Could not determine which file to preview (unrecognized menu action context). Raw context for debugging:",
+      true
+    );
+    showDebugContext(config.rawActionContext);
+    await SDK.notifyLoadSucceeded();
+    return;
+  }
+
+  showStatus("Loading preview…");
 
   try {
-    const html = context
-      ? await renderAsciidoc(rawContent, context)
-      : await renderAsciidoc(rawContent, fallbackContext());
-    showContent(html);
+    const mainContent = await getRepoFileContent(context, context.filePath);
+    if (mainContent === null) {
+      showStatus(`Could not load file content for "${context.filePath}".`, true);
+    } else {
+      const html = await renderAsciidoc(mainContent, context);
+      showContent(html);
+    }
   } catch (error) {
     console.error("[asciidoc-viewer] Failed to render AsciiDoc content", error);
     showStatus(`Failed to render AsciiDoc preview: ${(error as Error).message ?? error}`, true);
   }
-}
-
-/**
- * Used when the render context (project/repo/version/path) could not be
- * determined from `options`. Includes will not resolve (every `include::`
- * will show as "unresolved"), but the main document still renders.
- */
-function fallbackContext(): RenderContext {
-  return { projectId: "", repositoryId: "", version: "", filePath: "/" };
-}
-
-async function main(): Promise<void> {
-  await SDK.init({ loaded: false, applyTheme: true });
-  await SDK.ready();
-
-  const contentRenderer: ContentRenderer = { renderContent };
-  SDK.register(SDK.getContributionId(), () => contentRenderer);
 
   await SDK.notifyLoadSucceeded();
 }
 
-main().catch((error) => {
-  console.error("[asciidoc-viewer] Failed to initialize extension", error);
+run().catch((error) => {
+  console.error("[asciidoc-viewer] Failed to initialize preview dialog", error);
   SDK.notifyLoadFailed(error);
 });
