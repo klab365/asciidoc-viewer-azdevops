@@ -17,9 +17,6 @@ All notable changes to this project are documented in this file.
 - Collapsible repository file tree and automatic repository detection from the
   Azure DevOps breadcrumb.
 - Updated hub and Marketplace icons.
-
-### Changed
-
 - Published the extension publicly on the Visual Studio Marketplace.
 - Updated documentation to reflect the current hub-based experience,
   capabilities, and diagram-rendering privacy considerations.
