@@ -54,13 +54,18 @@ export function registerImageExtension(
     this.process((doc) => {
       let counter = 0;
 
+      // `:imagesdir:` is applied by Asciidoctor while producing the HTML,
+      // so it must also be applied before looking up repository files.
+      const imagesDir = doc.getAttribute("imagesdir") as string | undefined;
+
       const visit = (block: AbstractBlock): void => {
         if (block.getContext?.() === "image") {
           const target = block.getAttribute("target") as string | undefined;
-          if (target && !isAbsoluteUrl(target)) {
+          if (target && !isAbsoluteUrl(target) && !isAbsoluteUrl(imagesDir ?? "")) {
             const location = block.getSourceLocation?.();
             const baseDir = location?.dir || mainFileDir;
-            const resolved = resolveRepoRelativePath(baseDir, target);
+            const targetWithImagesDir = target.startsWith("/") || !imagesDir ? target : `${imagesDir}/${target}`;
+            const resolved = resolveRepoRelativePath(baseDir, targetWithImagesDir);
             if (resolved) {
               const placeholder = `asciidoc-viewer-image-placeholder-${counter++}`;
               block.setAttribute("target", placeholder, true);

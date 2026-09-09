@@ -4,7 +4,7 @@ import type { RenderContext } from "../types";
 vi.mock("../services/gitService", () => ({
   getRepoFileContent: vi.fn(async () => null),
   getRepoBinaryContent: vi.fn(async (_context: RenderContext, path: string) => {
-    if (path === "/docs/diagram.svg") {
+    if (path === "/docs/diagram.svg" || path === "/docs/images/diagram.svg") {
       return new TextEncoder().encode("<svg>fake</svg>").buffer;
     }
     return null;
@@ -29,6 +29,14 @@ describe("block image resolution", () => {
 
     expect(html).toContain('src="data:image/svg+xml;base64,');
     expect(html).not.toContain('src="diagram.svg"');
+  });
+
+  it("resolves images relative to an AsciiDoc imagesdir", async () => {
+    const source = "= Doc\n:imagesdir: images\n\nimage::diagram.svg[]\n";
+    const html = await renderAsciidoc(source, contextFor("/docs/main.adoc"));
+
+    expect(getRepoBinaryContent).toHaveBeenCalledWith(expect.anything(), "/docs/images/diagram.svg");
+    expect(html).toContain('src="data:image/svg+xml;base64,');
   });
 
   it("shows a broken-image placeholder when the image can't be fetched", async () => {

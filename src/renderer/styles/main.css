@@ -73,9 +73,11 @@
   --admonition-background: #f0f8ff;
   margin: 1.25rem 0;
   overflow: hidden;
-  border-left: 4px solid var(--admonition-color);
+  border-left: 3px solid var(--admonition-color);
   border-radius: 4px;
+  /* A transparent tint remains dark in Azure DevOps's dark theme. */
   background: var(--admonition-background);
+  background: color-mix(in srgb, var(--admonition-color) 12%, transparent);
 }
 
 .asciidoc-content .admonitionblock table {
@@ -85,7 +87,7 @@
 
 .asciidoc-content .admonitionblock td {
   border: 0;
-  padding: 12px 16px;
+  padding: 10px 12px;
   vertical-align: top;
 }
 
