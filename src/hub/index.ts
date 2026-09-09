@@ -1,21 +1,23 @@
 import * as SDK from "azure-devops-extension-sdk";
 import { getClient } from "azure-devops-extension-api";
-import { GitRestClient } from "azure-devops-extension-api/Git";
-import type { GitRepository } from "azure-devops-extension-api/Git";
+import { GitRestClient, VersionControlRecursionType } from "azure-devops-extension-api/Git";
+import type { GitItem, GitRepository } from "azure-devops-extension-api/Git";
 import { renderAsciidoc } from "../renderer/asciidocRenderer";
 import { getRepoFileContent } from "../services/gitService";
 import type { RenderContext } from "../types";
+import { buildTree, sortedTreeEntries, type TreeFolder } from "./tree";
+
+const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
 
 function getElements() {
   const repoSelect = document.getElementById("repo-select") as HTMLSelectElement | null;
-  const filePathInput = document.getElementById("file-path") as HTMLInputElement | null;
-  const previewButton = document.getElementById("preview-button") as HTMLButtonElement | null;
+  const fileTree = document.getElementById("file-tree");
   const status = document.getElementById("status");
   const content = document.getElementById("content");
-  if (!repoSelect || !filePathInput || !previewButton || !status || !content) {
+  if (!repoSelect || !fileTree || !status || !content) {
     throw new Error("Hub page is missing expected elements.");
   }
-  return { repoSelect, filePathInput, previewButton, status, content };
+  return { repoSelect, fileTree, status, content };
 }
 
 function showStatus(message: string, isError = false): void {
@@ -38,9 +40,35 @@ function branchNameFrom(defaultBranch: string | undefined): string {
   return (defaultBranch ?? "main").replace(/^refs\/heads\//, "");
 }
 
-function normalizeFilePath(path: string): string {
-  const trimmed = path.trim();
-  return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
+/** Builds a nested folder/file tree from a flat list of repo-relative AsciiDoc file paths. */
+function renderTree(
+  folder: TreeFolder,
+  onFileSelect: (path: string, element: HTMLButtonElement) => void
+): HTMLUListElement {
+  const list = document.createElement("ul");
+  const sortedEntries = sortedTreeEntries(folder);
+
+  for (const node of sortedEntries) {
+    const item = document.createElement("li");
+    if (node.type === "folder") {
+      item.className = "tree-folder";
+      const label = document.createElement("span");
+      label.className = "tree-label";
+      label.textContent = node.name;
+      item.appendChild(label);
+      item.appendChild(renderTree(node, onFileSelect));
+    } else {
+      item.className = "tree-file";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = node.name;
+      button.addEventListener("click", () => onFileSelect(node.path, button));
+      item.appendChild(button);
+    }
+    list.appendChild(item);
+  }
+
+  return list;
 }
 
 async function loadRepositories(projectId: string): Promise<GitRepository[]> {
@@ -48,11 +76,27 @@ async function loadRepositories(projectId: string): Promise<GitRepository[]> {
   return client.getRepositories(projectId);
 }
 
+async function loadAdocPaths(context: Pick<RenderContext, "projectId" | "repositoryId" | "version">): Promise<string[]> {
+  const client = getClient(GitRestClient);
+  const items: GitItem[] = await client.getItems(
+    context.repositoryId,
+    context.projectId,
+    undefined,
+    VersionControlRecursionType.Full,
+    false,
+    false,
+    false,
+    false,
+    { versionType: 0, versionOptions: 0, version: context.version }
+  );
+  return items.filter((item) => !item.isFolder && ADOC_EXTENSION_RE.test(item.path)).map((item) => item.path);
+}
+
 async function main(): Promise<void> {
   await SDK.init({ loaded: false, applyTheme: true });
   await SDK.ready();
 
-  const { repoSelect, filePathInput, previewButton } = getElements();
+  const { repoSelect, fileTree } = getElements();
   const webContext = SDK.getWebContext();
   const projectId = webContext.project?.id;
 
@@ -82,29 +126,53 @@ async function main(): Promise<void> {
 
   if (repositories.length === 0) {
     showStatus("No repositories found in this project.", true);
+    await SDK.notifyLoadSucceeded();
+    return;
   }
 
-  previewButton.addEventListener("click", async () => {
-    const repo = repositories.find((r) => r.id === repoSelect.value);
-    const filePathRaw = filePathInput.value;
+  let selectedButton: HTMLButtonElement | null = null;
 
-    if (!repo) {
-      showStatus("Please select a repository.", true);
-      return;
-    }
-    if (!filePathRaw.trim()) {
-      showStatus("Please enter a file path.", true);
-      return;
-    }
+  async function loadFileTreeFor(repo: GitRepository): Promise<void> {
+    fileTree.innerHTML = "";
+    selectedButton = null;
+    const version = branchNameFrom(repo.defaultBranch);
 
+    try {
+      const paths = await loadAdocPaths({ projectId: projectId!, repositoryId: repo.id, version });
+      if (paths.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "tree-empty";
+        empty.textContent = "No .adoc/.asciidoc files found in this repository.";
+        fileTree.appendChild(empty);
+        showStatus("No AsciiDoc files found in this repository.");
+        return;
+      }
+
+      const tree = buildTree(paths);
+      fileTree.appendChild(
+        renderTree(tree, async (path, button) => {
+          selectedButton?.parentElement?.classList.remove("selected");
+          selectedButton = button;
+          button.parentElement?.classList.add("selected");
+          await previewFile(repo, path);
+        })
+      );
+      showStatus("Select a file from the tree.");
+    } catch (error) {
+      console.error("[asciidoc-viewer] Failed to load file tree", error);
+      showStatus(`Failed to load files: ${(error as Error).message ?? error}`, true);
+    }
+  }
+
+  async function previewFile(repo: GitRepository, filePath: string): Promise<void> {
     const context: RenderContext = {
-      projectId,
+      projectId: projectId!,
       repositoryId: repo.id,
       version: branchNameFrom(repo.defaultBranch),
-      filePath: normalizeFilePath(filePathRaw)
+      filePath
     };
 
-    showStatus("Loading preview…");
+    showStatus(`Loading preview for ${filePath}…`);
     try {
       const mainContent = await getRepoFileContent(context, context.filePath);
       if (mainContent === null) {
@@ -117,7 +185,16 @@ async function main(): Promise<void> {
       console.error("[asciidoc-viewer] Failed to render AsciiDoc content", error);
       showStatus(`Failed to render AsciiDoc preview: ${(error as Error).message ?? error}`, true);
     }
+  }
+
+  repoSelect.addEventListener("change", () => {
+    const repo = repositories.find((r) => r.id === repoSelect.value);
+    if (repo) {
+      void loadFileTreeFor(repo);
+    }
   });
+
+  await loadFileTreeFor(repositories[0]);
 
   await SDK.notifyLoadSucceeded();
 }

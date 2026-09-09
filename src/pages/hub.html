@@ -8,19 +8,21 @@
     <link rel="stylesheet" href="../hub/hub.css" />
   </head>
   <body>
-    <div class="hub-toolbar">
-      <label>
-        Repository
-        <select id="repo-select"></select>
-      </label>
-      <label>
-        File path
-        <input id="file-path" type="text" placeholder="/docs/readme.adoc" />
-      </label>
-      <button id="preview-button" type="button">Preview</button>
+    <div class="hub-layout">
+      <div class="hub-toolbar">
+        <label>
+          Repository
+          <select id="repo-select"></select>
+        </label>
+      </div>
+      <div class="hub-body">
+        <nav id="file-tree" class="file-tree" aria-label="AsciiDoc files"></nav>
+        <main class="hub-main">
+          <div id="status" class="status">Select a repository, then a file from the tree.</div>
+          <div id="content" class="asciidoc-content" hidden></div>
+        </main>
+      </div>
     </div>
-    <div id="status" class="status">Select a repository and a file path, then click Preview.</div>
-    <div id="content" class="asciidoc-content" hidden></div>
     <script type="module" src="../hub/index.ts"></script>
   </body>
 </html>
