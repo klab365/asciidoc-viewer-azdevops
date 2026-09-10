@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-10
+
 ### Added
 
 - Branch picker in the hub toolbar, so a file can be previewed from any
@@ -12,6 +14,11 @@ All notable changes to this project are documented in this file.
 ### Fixed
 
 - Scale down oversized images so they never render wider than the page.
+- Align the hub's look and feel with Azure DevOps theming: replaced emoji
+  file-tree icons with monochrome icons that follow the current theme's
+  colours, restyled the toolbar dropdowns to match Azure DevOps inputs, and
+  removed the artificial content width cap so previews use the full panel
+  width like other Azure DevOps hubs.
 
 ## [1.0.1] - 2026-09-09
 
