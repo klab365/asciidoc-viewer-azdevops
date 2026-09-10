@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-10
+
 ### Added
 
 - Branch picker in the hub toolbar, so a file can be previewed from any
