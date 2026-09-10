@@ -9,6 +9,10 @@ All notable changes to this project are documented in this file.
 - Branch picker in the hub toolbar, so a file can be previewed from any
   branch of the selected repository, not just its default branch.
 
+### Fixed
+
+- Scale down oversized images so they never render wider than the page.
+
 ## [1.0.1] - 2026-09-09
 
 ### Fixed
