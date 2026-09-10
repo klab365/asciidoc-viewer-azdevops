@@ -21,9 +21,7 @@ describe("resolveRepoRelativePath", () => {
   });
 
   it("resolves '..' segments", () => {
-    expect(resolveRepoRelativePath("/docs/chapters", "../shared/note.adoc")).toBe(
-      "/docs/shared/note.adoc"
-    );
+    expect(resolveRepoRelativePath("/docs/chapters", "../shared/note.adoc")).toBe("/docs/shared/note.adoc");
   });
 
   it("resolves './' segments", () => {

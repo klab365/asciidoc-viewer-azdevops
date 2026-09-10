@@ -9,8 +9,14 @@ import { highlightSourceBlocks } from "../renderer/syntaxHighlighting";
 import type { RenderContext } from "../types";
 import "highlight.js/styles/github.css";
 import { buildTree, sortedTreeEntries, type TreeFolder, type FileEntry, type FileKind } from "./tree";
+import { branchNamesFromRefs, pickInitialBranch } from "./branches";
 import { detectCurrentRepository } from "./currentRepo";
-import { readSelectedPathFromUrl, writeSelectedPathToUrl } from "./urlState";
+import {
+  readSelectedPathFromUrl,
+  writeSelectedPathToUrl,
+  readSelectedBranchFromUrl,
+  writeSelectedBranchToUrl
+} from "./urlState";
 
 const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
 const IMAGE_EXTENSION_RE = /\.(svg|png|jpe?g|gif|webp|bmp)$/i;
@@ -24,16 +30,17 @@ const FILE_ICONS: Record<FileKind, string> = {
 };
 
 function getElements() {
-  const repoToolbar = document.getElementById("repo-toolbar");
+  const repoPicker = document.getElementById("repo-picker");
   const repoSelect = document.getElementById("repo-select") as HTMLSelectElement | null;
+  const branchSelect = document.getElementById("branch-select") as HTMLSelectElement | null;
   const fileTree = document.getElementById("file-tree");
   const fileTreeToggle = document.getElementById("file-tree-toggle") as HTMLButtonElement | null;
   const status = document.getElementById("status");
   const content = document.getElementById("content");
-  if (!repoToolbar || !repoSelect || !fileTree || !fileTreeToggle || !status || !content) {
+  if (!repoPicker || !repoSelect || !branchSelect || !fileTree || !fileTreeToggle || !status || !content) {
     throw new Error("Hub page is missing expected elements.");
   }
-  return { repoToolbar, repoSelect, fileTree, fileTreeToggle, status, content };
+  return { repoPicker, repoSelect, branchSelect, fileTree, fileTreeToggle, status, content };
 }
 
 function showStatus(message: string, isError = false): void {
@@ -110,6 +117,13 @@ async function loadRepositories(projectId: string): Promise<GitRepository[]> {
   return client.getRepositories(projectId);
 }
 
+/** Loads all branch names of a repository, sorted alphabetically. */
+async function loadBranches(projectId: string, repositoryId: string): Promise<string[]> {
+  const client = getClient(GitRestClient);
+  const refs = await client.getRefs(repositoryId, projectId, "heads/");
+  return branchNamesFromRefs(refs);
+}
+
 async function loadPreviewablePaths(
   context: Pick<RenderContext, "projectId" | "repositoryId" | "version">
 ): Promise<FileEntry[]> {
@@ -144,7 +158,7 @@ async function main(): Promise<void> {
   await SDK.init({ loaded: false, applyTheme: true });
   await SDK.ready();
 
-  const { repoToolbar, repoSelect, fileTree, fileTreeToggle } = getElements();
+  const { repoPicker, repoSelect, branchSelect, fileTree, fileTreeToggle } = getElements();
   const webContext = SDK.getWebContext();
   const projectId = webContext.project?.id;
 
@@ -179,6 +193,10 @@ async function main(): Promise<void> {
   }
 
   let selectedButton: HTMLButtonElement | null = null;
+  // Tracks whether the current branch selection came from a deep link, so
+  // the very first file-tree load for a repo can honor it; subsequent repo
+  // switches always fall back to that repo's default branch.
+  let pendingBranchFromUrl: string | null = await readSelectedBranchFromUrl();
 
   fileTreeToggle.addEventListener("click", () => {
     fileTree.hidden = !fileTree.hidden;
@@ -194,10 +212,40 @@ async function main(): Promise<void> {
     button.parentElement?.classList.add("selected");
   }
 
-  async function loadFileTreeFor(repo: GitRepository): Promise<void> {
+  /** Populates the branch dropdown for `repo`, returning the branch that should be shown initially. */
+  async function loadBranchesFor(repo: GitRepository): Promise<string> {
+    const defaultBranchName = branchNameFrom(repo.defaultBranch);
+    branchSelect.innerHTML = "";
+
+    let branchNames = [defaultBranchName];
+    try {
+      branchNames = await loadBranches(projectId!, repo.id);
+      if (branchNames.length === 0) {
+        branchNames = [defaultBranchName];
+      }
+    } catch (error) {
+      console.error("[asciidoc-viewer] Failed to load branches", error);
+      // Fall back to the repository's default branch so the file tree can
+      // still be loaded even if listing branches fails.
+    }
+
+    for (const name of branchNames) {
+      const option = document.createElement("option");
+      option.value = name;
+      option.textContent = name;
+      branchSelect.appendChild(option);
+    }
+
+    const requestedBranch = pendingBranchFromUrl;
+    pendingBranchFromUrl = null;
+    const initialBranch = pickInitialBranch(branchNames, requestedBranch, defaultBranchName);
+    branchSelect.value = initialBranch;
+    return initialBranch;
+  }
+
+  async function loadFileTreeFor(repo: GitRepository, version: string): Promise<void> {
     fileTree.innerHTML = "";
     selectedButton = null;
-    const version = branchNameFrom(repo.defaultBranch);
 
     try {
       const entries = await loadPreviewablePaths({ projectId: projectId!, repositoryId: repo.id, version });
@@ -215,7 +263,7 @@ async function main(): Promise<void> {
         renderTree(tree, async (path, kind, button) => {
           selectFileButton(button);
           await writeSelectedPathToUrl(path);
-          await previewFile(repo, path, kind);
+          await previewFile(repo, version, path, kind);
         })
       );
 
@@ -229,7 +277,7 @@ async function main(): Promise<void> {
         : null;
       if (linkedPath && linkedButton) {
         selectFileButton(linkedButton);
-        await previewFile(repo, linkedPath, (linkedButton.dataset.kind as FileKind) ?? "adoc");
+        await previewFile(repo, version, linkedPath, (linkedButton.dataset.kind as FileKind) ?? "adoc");
       } else {
         showStatus("Select a file from the tree.");
       }
@@ -239,11 +287,11 @@ async function main(): Promise<void> {
     }
   }
 
-  async function previewFile(repo: GitRepository, filePath: string, kind: FileKind): Promise<void> {
+  async function previewFile(repo: GitRepository, version: string, filePath: string, kind: FileKind): Promise<void> {
     const context: RenderContext = {
       projectId: projectId!,
       repositoryId: repo.id,
-      version: branchNameFrom(repo.defaultBranch),
+      version,
       filePath
     };
 
@@ -273,11 +321,28 @@ async function main(): Promise<void> {
     }
   }
 
+  let currentRepo: GitRepository | null = null;
+
+  async function selectRepo(repo: GitRepository): Promise<void> {
+    currentRepo = repo;
+    const version = await loadBranchesFor(repo);
+    await loadFileTreeFor(repo, version);
+  }
+
   repoSelect.addEventListener("change", () => {
     const repo = repositories.find((r) => r.id === repoSelect.value);
     if (repo) {
-      void loadFileTreeFor(repo);
+      void selectRepo(repo);
     }
+  });
+
+  branchSelect.addEventListener("change", () => {
+    if (!currentRepo) {
+      return;
+    }
+    const version = branchSelect.value;
+    void writeSelectedBranchToUrl(version);
+    void loadFileTreeFor(currentRepo, version);
   });
 
   const detectedRepo = await detectCurrentRepository(repositories);
@@ -285,14 +350,14 @@ async function main(): Promise<void> {
     // This hub is opened while browsing a specific repository (like the
     // built-in "Files"/"Commits" hubs) — no need to make the user pick it
     // again from a dropdown.
-    repoToolbar.hidden = true;
+    repoPicker.hidden = true;
     repoSelect.value = detectedRepo.id;
-    await loadFileTreeFor(detectedRepo);
+    await selectRepo(detectedRepo);
   } else {
     // Couldn't determine the current repository automatically — fall back
     // to letting the user pick one manually.
-    repoToolbar.hidden = false;
-    await loadFileTreeFor(repositories[0]);
+    repoPicker.hidden = false;
+    await selectRepo(repositories[0]);
   }
 
   await SDK.notifyLoadSucceeded();

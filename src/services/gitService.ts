@@ -10,10 +10,7 @@ import type { RenderContext } from "../types";
  * Returns `null` if the file cannot be found or read (caller decides how to
  * surface that, e.g. as an unresolved-include placeholder).
  */
-export async function getRepoFileContent(
-  context: RenderContext,
-  path: string
-): Promise<string | null> {
+export async function getRepoFileContent(context: RenderContext, path: string): Promise<string | null> {
   await SDK.ready();
   const client = getClient(GitRestClient);
 
@@ -43,10 +40,7 @@ export async function getRepoFileContent(
  *
  * Returns `null` if the file cannot be found or read.
  */
-export async function getRepoBinaryContent(
-  context: RenderContext,
-  path: string
-): Promise<ArrayBuffer | null> {
+export async function getRepoBinaryContent(context: RenderContext, path: string): Promise<ArrayBuffer | null> {
   await SDK.ready();
   const client = getClient(GitRestClient);
 

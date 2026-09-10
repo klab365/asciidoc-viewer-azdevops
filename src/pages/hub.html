@@ -9,10 +9,14 @@
   </head>
   <body>
     <div class="hub-layout">
-      <div class="hub-toolbar" id="repo-toolbar">
-        <label>
+      <div class="hub-toolbar" id="hub-toolbar">
+        <label id="repo-picker">
           Repository
           <select id="repo-select"></select>
+        </label>
+        <label id="branch-picker">
+          Branch
+          <select id="branch-select"></select>
         </label>
       </div>
       <div class="hub-body">
@@ -28,7 +32,7 @@
           ‹
         </button>
         <main class="hub-main">
-          <div id="status" class="status">Select a repository, then a file from the tree.</div>
+          <div id="status" class="status">Select a repository and branch, then a file from the tree.</div>
           <div id="content" class="asciidoc-content" hidden></div>
         </main>
       </div>
