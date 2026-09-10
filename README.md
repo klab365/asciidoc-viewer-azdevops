@@ -17,10 +17,16 @@ Repos and renders documents entirely in the browser.
 
 Use the chevron on the right edge of the file tree to collapse or restore it.
 
+Open a pull request and select its **AsciiDoc** tab to preview the
+`.adoc`/`.asciidoc` files changed in that pull request, rendered at the pull
+request's source commit.
+
 ## Features
 
 - Browse `.adoc` and `.asciidoc` files from the current repository and
   branch.
+- Preview AsciiDoc files changed in a pull request directly from a
+  dedicated **AsciiDoc** tab on the pull request.
 - Resolve local `include::` directives recursively in the same repository and
   version, including cycle detection and a readable unresolved-include
   warning.
@@ -100,10 +106,12 @@ mise run package
 ```text
 src/
   hub/                 # Azure DevOps hub, file tree, repository detection
+  prTab/               # Pull request "AsciiDoc" tab (changed-file preview)
   renderer/            # Asciidoctor rendering, includes, images, diagrams, CSS
   services/gitService.ts
                         # Azure Repos Git REST access
   pages/hub.html       # hub entry page
+  pages/pr-tab.html    # pull request tab entry page
   __tests__/           # Vitest tests
 vss-extension.json     # Azure DevOps extension manifest
 ```

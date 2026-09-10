@@ -22,6 +22,8 @@ and read it without leaving Azure DevOps.
 
 - Browse `.adoc` and `.asciidoc` files in the repository selected in the
   Azure DevOps breadcrumb.
+- Preview AsciiDoc files changed in a pull request from a dedicated
+  **AsciiDoc** tab on the pull request.
 - Resolve nested local `include::` directives in the same repository and
   branch/commit, with circular-include detection.
 - Render block images (`image::...[]`) from the repository, including relative
