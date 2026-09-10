@@ -4,6 +4,8 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-10
+
 ### Fixed
 
 - Notify Azure DevOps that the hub finished loading as soon as its UI shell

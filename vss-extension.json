@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "asciidoc-viewer-azdevops",
   "publisher": "klab365",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "name": "AsciiDoc Viewer",
   "description": "Preview AsciiDoc (.adoc/.asciidoc) files directly in Azure Repos.",
   "public": true,
