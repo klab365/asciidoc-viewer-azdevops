@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+## [1.1.1] - 2026-09-10
+
+### Fixed
+
+- Notify Azure DevOps that the hub finished loading as soon as its UI shell
+  is ready, instead of only after repositories, branches, the file tree, and
+  a possible deep-linked file preview had all loaded. Previously this could
+  keep Azure DevOps's host-level loading spinner visible for several
+  seconds; the hub's own status messages now report load progress instead.
+
 ## [1.1.0] - 2026-09-10
 
 ### Added

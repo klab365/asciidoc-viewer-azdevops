@@ -176,12 +176,20 @@ async function main(): Promise<void> {
   await SDK.ready();
 
   const { repoPicker, repoSelect, branchSelect, fileTree, fileTreeToggle } = getElements();
+
+  // Hand control over to the hub's own UI (which already shows a status
+  // message) as soon as the page shell is ready, instead of making Azure
+  // DevOps keep its host-level loading spinner up while we fetch
+  // repositories, branches, the file tree, and possibly render a
+  // deep-linked file — that chain of network calls can easily take
+  // several seconds.
+  await SDK.notifyLoadSucceeded();
+
   const webContext = SDK.getWebContext();
   const projectId = webContext.project?.id;
 
   if (!projectId) {
     showStatus("Could not determine the current project.", true);
-    await SDK.notifyLoadSucceeded();
     return;
   }
 
@@ -191,7 +199,6 @@ async function main(): Promise<void> {
   } catch (error) {
     console.error("[asciidoc-viewer] Failed to load repositories", error);
     showStatus(`Failed to load repositories: ${(error as Error).message ?? error}`, true);
-    await SDK.notifyLoadSucceeded();
     return;
   }
 
@@ -205,7 +212,6 @@ async function main(): Promise<void> {
 
   if (repositories.length === 0) {
     showStatus("No repositories found in this project.", true);
-    await SDK.notifyLoadSucceeded();
     return;
   }
 
@@ -376,8 +382,6 @@ async function main(): Promise<void> {
     repoPicker.hidden = false;
     await selectRepo(repositories[0]);
   }
-
-  await SDK.notifyLoadSucceeded();
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
