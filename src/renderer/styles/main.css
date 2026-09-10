@@ -141,6 +141,11 @@ html[data-theme="dark"] .asciidoc-content pre.highlight {
   --hljs-tag: #7ee787;
 }
 
+.asciidoc-content img {
+  max-width: 100%;
+  height: auto;
+}
+
 .asciidoc-content table {
   border-collapse: collapse;
   width: 100%;
