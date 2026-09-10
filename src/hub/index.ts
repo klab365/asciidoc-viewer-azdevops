@@ -29,8 +29,7 @@ const FOLDER_ICON =
   '<svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M1.5 3A1.5 1.5 0 0 1 3 1.5h3.379a1.5 1.5 0 0 1 1.06.44L8.62 3.12A.5.5 0 0 0 8.98 3.27H13a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H3A1.5 1.5 0 0 1 1.5 12.5V3Z"/></svg>';
 
 const FILE_ICONS: Record<FileKind, string> = {
-  adoc:
-    '<svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.29a1 1 0 0 1 .7.29l2.21 2.21a1 1 0 0 1 .29.7V13.5A1.5 1.5 0 0 1 10.99 15H4A1.5 1.5 0 0 1 2.5 13.5v-10A1.5 1.5 0 0 1 4 1.5Zm.75 5a.5.5 0 0 0 0 1h6.5a.5.5 0 0 0 0-1h-6.5Zm0 2.5a.5.5 0 0 0 0 1h6.5a.5.5 0 0 0 0-1h-6.5Zm0 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4Z"/></svg>',
+  adoc: '<svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M4 1.5h5.29a1 1 0 0 1 .7.29l2.21 2.21a1 1 0 0 1 .29.7V13.5A1.5 1.5 0 0 1 10.99 15H4A1.5 1.5 0 0 1 2.5 13.5v-10A1.5 1.5 0 0 1 4 1.5Zm.75 5a.5.5 0 0 0 0 1h6.5a.5.5 0 0 0 0-1h-6.5Zm0 2.5a.5.5 0 0 0 0 1h6.5a.5.5 0 0 0 0-1h-6.5Zm0 2.5a.5.5 0 0 0 0 1h4a.5.5 0 0 0 0-1h-4Z"/></svg>',
   image:
     '<svg class="tree-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M2.5 3A1.5 1.5 0 0 1 4 1.5h8A1.5 1.5 0 0 1 13.5 3v10A1.5 1.5 0 0 1 12 14.5H4A1.5 1.5 0 0 1 2.5 13V3Zm2.25 2a1.25 1.25 0 1 0 0 2.5 1.25 1.25 0 0 0 0-2.5ZM4 12.5h8l-2.9-4.35a.5.5 0 0 0-.79-.05L6.9 10.2 5.98 8.9a.5.5 0 0 0-.82.02L4 12.5Z"/></svg>',
   diagram:
