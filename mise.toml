@@ -30,6 +30,16 @@ description = "Run linter"
 depends = ["install"]
 run = "npm run lint"
 
+[tasks.format]
+description = "Format source files with Prettier"
+depends = ["install"]
+run = "npm run format"
+
+[tasks.check-format]
+description = "Check source files are formatted with Prettier (no write)"
+depends = ["install"]
+run = "npm run format:check"
+
 [tasks.test]
 description = "Run tests"
 depends = ["install"]

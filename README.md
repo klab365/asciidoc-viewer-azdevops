@@ -11,7 +11,9 @@ Repos and renders documents entirely in the browser.
 3. The repository selected in the Azure DevOps breadcrumb is used
    automatically. A repository picker is shown only when no repository
    context can be detected.
-4. Select an AsciiDoc document, image, or PlantUML file from the file tree.
+4. Use the branch picker to choose which branch of the repository to browse;
+   it defaults to the repository's default branch.
+5. Select an AsciiDoc document, image, or PlantUML file from the file tree.
 
 Use the chevron on the right edge of the file tree to collapse or restore it.
 
@@ -77,7 +79,11 @@ mise run install
 
 # verify the project
 mise run lint
+mise run check-format
 mise run test
+
+# format source files
+mise run format
 
 # create the browser bundle in dist/
 mise run build
