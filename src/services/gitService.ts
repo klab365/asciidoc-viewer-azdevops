@@ -1,6 +1,11 @@
 import * as SDK from "azure-devops-extension-sdk";
 import { getClient } from "azure-devops-extension-api";
-import { GitRestClient } from "azure-devops-extension-api/Git";
+import {
+  GitRestClient,
+  GitVersionType,
+  GitVersionOptions,
+  type GitVersionDescriptor
+} from "azure-devops-extension-api/Git";
 import type { RenderContext } from "../types";
 
 /**
@@ -24,7 +29,7 @@ export async function getRepoFileContent(context: RenderContext, path: string): 
       undefined,
       undefined,
       undefined,
-      { versionType: 0, versionOptions: 0, version: versionNameFrom(context.version) }
+      versionDescriptorFrom(context)
     );
     return await streamToString(stream);
   } catch (error) {
@@ -54,7 +59,7 @@ export async function getRepoBinaryContent(context: RenderContext, path: string)
       undefined,
       undefined,
       undefined,
-      { versionType: 0, versionOptions: 0, version: versionNameFrom(context.version) }
+      versionDescriptorFrom(context)
     );
     return stream instanceof Blob ? await stream.arrayBuffer() : stream;
   } catch (error) {
@@ -63,9 +68,23 @@ export async function getRepoBinaryContent(context: RenderContext, path: string)
   }
 }
 
-/** Strips the "GB"/"GT"/"GC" prefix Azure DevOps uses internally for branch/tag/commit versions. */
-function versionNameFrom(version: string): string {
-  return version.replace(/^G[BTC]/, "");
+/** Preserves explicit version kinds and supports Azure DevOps GB/GT/GC prefixes. */
+function versionDescriptorFrom(context: RenderContext): GitVersionDescriptor {
+  const { version, versionType } = context;
+  if (versionType !== undefined) {
+    return { version, versionType, versionOptions: GitVersionOptions.None };
+  }
+  const prefixTypes: Record<string, GitVersionType> = {
+    GB: GitVersionType.Branch,
+    GT: GitVersionType.Tag,
+    GC: GitVersionType.Commit
+  };
+  const prefixedType = prefixTypes[version.slice(0, 2)];
+  return {
+    version: prefixedType === undefined ? version : version.slice(2),
+    versionType: prefixedType ?? GitVersionType.Branch,
+    versionOptions: GitVersionOptions.None
+  };
 }
 
 async function streamToString(stream: ArrayBuffer | Blob): Promise<string> {

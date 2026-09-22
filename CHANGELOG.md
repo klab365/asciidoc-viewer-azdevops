@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+### Added
+
+- Preview AsciiDoc files directly on a pull request's new **AsciiDoc** tab.
+  The tab lists the `.adoc`/`.asciidoc` files changed in the pull request and
+  renders the selected file at the pull request's source commit (falling
+  back to the target commit), reusing the same rendering pipeline as the
+  repository hub (includes, images, diagrams, syntax highlighting).
+
 ## [1.1.1] - 2026-09-10
 
 ### Fixed

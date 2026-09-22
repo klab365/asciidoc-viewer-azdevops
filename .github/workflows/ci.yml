@@ -31,12 +31,49 @@ jobs:
       - name: Build
         run: mise run build
 
-      - name: Dry-run package (validates vss-extension.json + build output, no publish)
-        run: mise run package
+      # A new GitHub Actions run number is assigned for every CI run. Override
+      # only the packaged manifest; the private DEV extension has a separate
+      # identity from the public release extension. Re-runs keep the same version.
+      - name: Set DEV extension version
+        run: echo "EXTENSION_VERSION=0.0.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
+
+      - name: Package private DEV VSIX
+        run: |
+          mise exec -- tfx extension create \
+            --manifest-globs vss-extension.json \
+            --override "{\"id\":\"asciidoc-viewer-azdevops-dev\",\"name\":\"AsciiDoc Viewer DEV\",\"public\":false,\"version\":\"${EXTENSION_VERSION}\"}" \
+            --output-path "asciidoc-viewer-azdevops-dev-${EXTENSION_VERSION}.vsix"
 
       - name: Upload .vsix artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extension-vsix
-          path: "*.vsix"
+          name: asciidoc-viewer-azdevops-dev-${{ env.EXTENSION_VERSION }}
+          path: asciidoc-viewer-azdevops-dev-${{ env.EXTENSION_VERSION }}.vsix
           retention-days: 14
+
+      # Never expose the publishing token to pull-request builds.
+      - name: Publish private DEV extension to Marketplace
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: publish
+        continue-on-error: true
+        env:
+          MARKETPLACE_PAT: ${{ secrets.MARKETPLACE_PAT }}
+        run: |
+          if [ -z "$MARKETPLACE_PAT" ]; then
+            echo "::error::MARKETPLACE_PAT is not configured."
+            exit 1
+          fi
+          mise exec -- tfx extension publish \
+            --vsix "asciidoc-viewer-azdevops-dev-${EXTENSION_VERSION}.vsix" \
+            --token "$MARKETPLACE_PAT"
+
+      - name: DEV publish result
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          PUBLISH_OUTCOME: ${{ steps.publish.outcome }}
+        run: |
+          if [ "$PUBLISH_OUTCOME" = "success" ]; then
+            echo "Published private DEV version ${EXTENSION_VERSION} to the Marketplace."
+          else
+            echo "::warning::DEV publishing failed. Download the 'asciidoc-viewer-azdevops-dev-${EXTENSION_VERSION}' artifact and upload it manually at https://marketplace.visualstudio.com/manage/publishers/klab365"
+          fi

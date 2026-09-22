@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AsciiDoc</title>
+    <link rel="stylesheet" href="../renderer/styles/main.css" />
+    <link rel="stylesheet" href="../hub/hub.css" />
+  </head>
+  <body>
+    <div class="hub-layout">
+      <div class="hub-body">
+        <nav id="file-tree" class="file-tree" aria-label="Changed AsciiDoc files"></nav>
+        <main class="hub-main">
+          <div id="status" class="status">Loading changed AsciiDoc files…</div>
+          <div id="content" class="asciidoc-content" hidden></div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="../prTab/index.ts"></script>
+  </body>
+</html>

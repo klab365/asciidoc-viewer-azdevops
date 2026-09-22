@@ -60,6 +60,16 @@
         "uri": "dist/hub.html",
         "icon": "images/icon.png"
       }
+    },
+    {
+      "id": "asciidoc-viewer-pr-tab",
+      "type": "ms.vss-web.tab",
+      "description": "Preview AsciiDoc files changed in a pull request.",
+      "targets": ["ms.vss-code-web.pr-tabs"],
+      "properties": {
+        "name": "AsciiDoc",
+        "uri": "dist/pr-tab.html"
+      }
     }
   ]
 }

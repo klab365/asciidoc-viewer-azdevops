@@ -1,6 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import type { RenderContext } from "../types";
 
+const { initializeMermaid, renderMermaid } = vi.hoisted(() => ({
+  initializeMermaid: vi.fn(),
+  renderMermaid: vi.fn(async () => ({ svg: "<svg>mermaid-diagram</svg>" }))
+}));
+
+vi.mock("mermaid", () => ({
+  default: { initialize: initializeMermaid, render: renderMermaid }
+}));
 vi.mock("../services/gitService", () => ({
   getRepoFileContent: vi.fn(async () => null)
 }));
@@ -36,18 +44,17 @@ describe("diagram rendering", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("renders a mermaid block via mermaid.ink", async () => {
-    const fetchMock = vi.fn(async (url: string) => {
-      expect(url).toMatch(/^https:\/\/mermaid\.ink\/svg\//);
-      return new Response("<svg>mermaid-diagram</svg>", { status: 200 });
-    });
+  it("renders a mermaid block locally without fetching mermaid.ink", async () => {
+    const fetchMock = vi.fn();
     global.fetch = fetchMock as unknown as typeof fetch;
 
     const source = "= Doc\n\n[mermaid]\n----\ngraph TD; A-->B;\n----\n";
     const html = await renderAsciidoc(source, contextFor("/docs/main.adoc"));
 
     expect(html).toContain("<svg>mermaid-diagram</svg>");
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(renderMermaid).toHaveBeenCalledWith(expect.stringMatching(/^asciidoc-viewer-mermaid-/), "graph TD; A-->B;");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(initializeMermaid).toHaveBeenCalledWith({ startOnLoad: false, securityLevel: "strict" });
   });
 
   it("renders a graphviz/dot block via Kroki", async () => {

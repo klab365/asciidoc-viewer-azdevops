@@ -4,12 +4,9 @@ import type { Extensions, BlockProcessorDslInterface, AbstractBlock, Reader } fr
  * AsciiDoc block names (as used in `[name]` before a delimited block) mapped
  * to their diagram-rendering strategy. Most are rendered via Kroki
  * (https://kroki.io) with the block name used as-is for the Kroki diagram
- * type path segment. `mermaid` is special-cased to use mermaid.ink instead —
- * Kroki's public instance proxies Mermaid through a headless-browser
- * companion service that reliably times out (verified: PlantUML/GraphViz
- * respond in ~1s via Kroki, Mermaid via Kroki never responds within 40s in
- * testing); mermaid.ink is a dedicated, reliable public service for exactly
- * this diagram type.
+ * type path segment. Mermaid is rendered locally in the browser so its source
+ * never leaves Azure DevOps and rendering is not affected by CORS or service
+ * availability.
  */
 const KROKI_DIAGRAM_TYPES: Record<string, string> = {
   plantuml: "plantuml",
@@ -49,22 +46,25 @@ async function renderViaKroki(krokiType: string, source: string): Promise<string
   return response.text();
 }
 
-async function renderMermaidViaMermaidInk(source: string): Promise<string> {
-  const encoded = base64UrlEncode(source);
-  const response = await fetch(`https://mermaid.ink/svg/${encoded}`);
-  if (!response.ok) {
-    throw new Error(`mermaid.ink returned HTTP ${response.status}`);
-  }
-  return response.text();
-}
+type MermaidApi = {
+  initialize(config: { startOnLoad: boolean; securityLevel: "strict" }): void;
+  render(id: string, source: string): Promise<{ svg: string }>;
+};
 
-function base64UrlEncode(text: string): string {
-  const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  for (const byte of bytes) {
-    binary += String.fromCharCode(byte);
-  }
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+let mermaidApi: Promise<MermaidApi> | undefined;
+let mermaidDiagramId = 0;
+
+async function renderMermaidLocally(source: string): Promise<string> {
+  // A dynamic import keeps Mermaid out of the initial hub/PR-tab bundle. The
+  // strict security level is essential because documents and PRs are content
+  // supplied by users.
+  mermaidApi ??= import("mermaid").then(({ default: mermaid }) => {
+    mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+    return mermaid;
+  });
+  const mermaid = await mermaidApi;
+  const result = await mermaid.render(`asciidoc-viewer-mermaid-${mermaidDiagramId++}`, source);
+  return result.svg;
 }
 
 function warningBlockHtml(diagramName: string, error: unknown): string {
@@ -72,7 +72,7 @@ function warningBlockHtml(diagramName: string, error: unknown): string {
   return `[WARNING]\n====\nCould not render \`${diagramName}\` diagram: ${message}\n====\n`;
 }
 
-/** Registers PlantUML/Mermaid/GraphViz/... diagram block processors (via Kroki / mermaid.ink) on the given registry. */
+/** Registers local Mermaid and Kroki-backed PlantUML/GraphViz/... diagram block processors. */
 export function registerDiagramExtensions(registry: ReturnType<typeof Extensions.create>): void {
   for (const blockName of DIAGRAM_BLOCK_NAMES) {
     registry.block(blockName, function (this: BlockProcessorDslInterface) {
@@ -82,7 +82,7 @@ export function registerDiagramExtensions(registry: ReturnType<typeof Extensions
         try {
           const svg =
             blockName === "mermaid"
-              ? await renderMermaidViaMermaidInk(source)
+              ? await renderMermaidLocally(source)
               : await renderViaKroki(KROKI_DIAGRAM_TYPES[blockName], source);
           return this.createPassBlock(parent, svg, attrs);
         } catch (error) {

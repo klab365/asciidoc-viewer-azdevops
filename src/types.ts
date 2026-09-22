@@ -1,3 +1,5 @@
+import type { GitVersionType } from "azure-devops-extension-api/Git";
+
 /**
  * Shared context describing where the currently previewed file lives in the
  * repo, so we can resolve relative `include::` directives against the same
@@ -8,6 +10,8 @@ export interface RenderContext {
   repositoryId: string;
   /** Branch or commit the file is being viewed at, e.g. "GBmain" or a commit sha. */
   version: string;
+  /** Explicit version kind; unprefixed versions default to a branch. */
+  versionType?: GitVersionType;
   /** Full repo-relative path of the file being previewed, e.g. "/docs/index.adoc". */
   filePath: string;
 }
