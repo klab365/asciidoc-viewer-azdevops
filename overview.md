@@ -22,6 +22,8 @@ and read it without leaving Azure DevOps.
 
 - Browse `.adoc` and `.asciidoc` files in the repository selected in the
   Azure DevOps breadcrumb.
+- Preview AsciiDoc files changed in a pull request from a dedicated
+  **AsciiDoc** tab on the pull request.
 - Resolve nested local `include::` directives in the same repository and
   branch/commit, with circular-include detection.
 - Render block images (`image::...[]`) from the repository, including relative
@@ -42,10 +44,9 @@ and read it without leaving Azure DevOps.
   and cross-repository includes are not resolved.
 - Only block image macros (`image::target[]`) are fetched from Azure Repos;
   inline image macros are not currently resolved.
-- PlantUML and most other diagram types are rendered by
-  [Kroki](https://kroki.io); Mermaid is rendered by
-  [mermaid.ink](https://mermaid.ink). Diagram source is sent to the respective
-  rendering service.
+- Mermaid diagrams are rendered locally in the browser. PlantUML and most
+  other diagram types are rendered by [Kroki](https://kroki.io), so their
+  diagram source is sent to that rendering service.
 
 ## Feedback and support
 

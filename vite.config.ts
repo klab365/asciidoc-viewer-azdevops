@@ -9,7 +9,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        hub: resolve(__dirname, "src/pages/hub.html")
+        hub: resolve(__dirname, "src/pages/hub.html"),
+        "pr-tab": resolve(__dirname, "src/pages/pr-tab.html")
       }
     }
   }

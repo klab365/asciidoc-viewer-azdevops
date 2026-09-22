@@ -17,10 +17,16 @@ Repos and renders documents entirely in the browser.
 
 Use the chevron on the right edge of the file tree to collapse or restore it.
 
+Open a pull request and select its **AsciiDoc** tab to preview the
+`.adoc`/`.asciidoc` files changed in that pull request, rendered at the pull
+request's source commit.
+
 ## Features
 
 - Browse `.adoc` and `.asciidoc` files from the current repository and
   branch.
+- Preview AsciiDoc files changed in a pull request directly from a
+  dedicated **AsciiDoc** tab on the pull request.
 - Resolve local `include::` directives recursively in the same repository and
   version, including cycle detection and a readable unresolved-include
   warning.
@@ -63,10 +69,9 @@ opened on its own.
   branch/commit. External and cross-repository includes are not resolved.
 - Only block-image macros (`image::target[]`) are fetched from the repository;
   inline image macros (`image:target[]`) are not currently resolved.
-- PlantUML and most other diagram types are rendered by
-  [Kroki](https://kroki.io); Mermaid is rendered by
-  [mermaid.ink](https://mermaid.ink). Diagram source is therefore sent to the
-  corresponding rendering service.
+- Mermaid diagrams are rendered locally in the browser. PlantUML and most
+  other diagram types are rendered by [Kroki](https://kroki.io), so their
+  diagram source is sent to that rendering service.
 
 ## Development
 
@@ -100,13 +105,54 @@ mise run package
 ```text
 src/
   hub/                 # Azure DevOps hub, file tree, repository detection
+  prTab/               # Pull request "AsciiDoc" tab (changed-file preview)
   renderer/            # Asciidoctor rendering, includes, images, diagrams, CSS
   services/gitService.ts
                         # Azure Repos Git REST access
   pages/hub.html       # hub entry page
+  pages/pr-tab.html    # pull request tab entry page
   __tests__/           # Vitest tests
 vss-extension.json     # Azure DevOps extension manifest
 ```
+
+## Testing the private DEV extension
+
+CI packages a separate **AsciiDoc Viewer DEV** extension with ID
+`asciidoc-viewer-azdevops-dev`, `public: false`, and version
+`0.0.0.<GitHub run number>`. Only the packaged manifest is overridden;
+release manifests and the CD workflow are unchanged.
+
+### Build and publish
+
+- **Pull requests targeting `main`:** CI builds a versioned DEV VSIX artifact
+  for download, without publishing or accessing the publishing token.
+- **Pushes to `main`:** CI also attempts to publish the private DEV extension
+  using the repository secret `MARKETPLACE_PAT`.
+- **Publishing failures:** CI reports a warning and keeps the VSIX artifact
+  available for manual upload. Check the **DEV publish result** step.
+- **Re-runs:** GitHub retains the same run number, so re-running a workflow
+  does not produce a newer extension version.
+
+### Install and test
+
+1. After the first successful publication, open
+   [Marketplace Publisher Management](https://marketplace.visualstudio.com/manage)
+   and select the private DEV extension under your publisher account.
+2. Share it with your Azure DevOps test organization and install it there
+   using an account with the appropriate organization permissions.
+3. Open the AsciiDoc Viewer repository hub or a pull request's AsciiDoc tab.
+   Check changed documents, includes, images, and diagrams.
+4. After subsequent publications, reload Azure DevOps once the extension
+   update is available. Sharing and installation are only needed initially.
+
+To test a PR build before merging, or if automatic publishing fails, download
+and extract its DEV artifact from GitHub Actions. Upload the `.vsix` manually
+in Publisher Management, creating the DEV extension if it does not exist or
+updating it with a newer version if it does.
+
+Use a dedicated test organization to avoid confusing the identically named
+hub and PR tabs when both DEV and release extensions are installed. The DEV
+extension stays private; releases use the separate public extension.
 
 ## Release process
 
