@@ -63,4 +63,20 @@ describe("renderAsciidoc", () => {
 
     expect(html.toLowerCase()).toContain("could not resolve local include");
   });
+
+  it("renders inline and block latexmath formulas with KaTeX", async () => {
+    const source = `:stem: latexmath
+
+Inline latexmath:[x^2 + y^2].
+
+[latexmath]
+++++
+\\frac{a}{b} = c
+++++`;
+    const html = await renderAsciidoc(source, contextFor("/docs/main.adoc"));
+
+    expect(html).toContain("katex");
+    expect(html).toContain("katex-display");
+    expect(html).not.toContain("\\(x^2 + y^2\\)");
+  });
 });

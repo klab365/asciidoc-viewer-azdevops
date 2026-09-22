@@ -38,12 +38,29 @@ request's source commit.
 - Preview `.puml` and `.plantuml` files directly from the file tree.
 - Render PlantUML, Mermaid, GraphViz, and other supported diagram blocks in
   AsciiDoc documents.
+- Render LaTeX formulas written with Asciidoctor's `latexmath` macros or
+  `:stem: latexmath` using KaTeX.
 - Apply syntax highlighting to common source languages, including TypeScript,
   JavaScript, JSON, YAML, Bash, Java, C#, Python, and SQL.
 - Style AsciiDoc admonitions (`NOTE`, `TIP`, `IMPORTANT`, `WARNING`, and
   `CAUTION`) for Azure DevOps light and dark themes.
 - Support standard Asciidoctor features such as tables, lists, callouts, and
   a table of contents (for example, `:toc: left`).
+
+## LaTeX formulas
+
+Use standard Asciidoctor LaTeX math syntax:
+
+```asciidoc
+:stem: latexmath
+
+The area of a circle is stem:[A = \pi r^2].
+
+[latexmath]
+++++
+\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}
+++++
+```
 
 ## AsciiDoc image layout
 

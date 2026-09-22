@@ -2,10 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [1.2.0]
 
 ### Added
 
+- Render inline and block LaTeX formulas written with Asciidoctor's
+  `latexmath` / `stem: latexmath` syntax using KaTeX.
 - Preview AsciiDoc files directly on a pull request's new **AsciiDoc** tab.
   The tab lists the `.adoc`/`.asciidoc` files changed in the pull request and
   renders the selected file at the pull request's source commit (falling

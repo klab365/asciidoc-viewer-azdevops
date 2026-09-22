@@ -1,6 +1,7 @@
 import { convert } from "@asciidoctor/core";
 import { buildConvertOptions } from "./includeResolver";
 import { resolvePendingImages, type PendingImage } from "./imageExtension";
+import { renderLatex } from "./latexRenderer";
 import type { RenderContext } from "../types";
 
 /**
@@ -12,5 +13,6 @@ export async function renderAsciidoc(source: string, context: RenderContext): Pr
   const pendingImages: PendingImage[] = [];
   const result = await convert(source, buildConvertOptions(context, pendingImages));
   const html = typeof result === "string" ? result : String(result);
-  return pendingImages.length > 0 ? resolvePendingImages(html, pendingImages, context) : html;
+  const htmlWithImages = pendingImages.length > 0 ? await resolvePendingImages(html, pendingImages, context) : html;
+  return renderLatex(htmlWithImages);
 }
