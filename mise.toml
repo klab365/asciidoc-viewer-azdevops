@@ -8,7 +8,7 @@ _.file = ".env"
 
 [tasks.install]
 description = "Install npm dependencies (project libs, not CLI tools)"
-run = "npm install"
+run = "npm ci"
 
 [tasks.build]
 description = "Build the extension bundle"
@@ -44,6 +44,11 @@ run = "npm run format:check"
 description = "Run tests"
 depends = ["install"]
 run = "npm test"
+
+[tasks.audit]
+description = "Fail when npm reports high or critical dependency vulnerabilities"
+depends = ["install"]
+run = "npm audit --audit-level=high"
 
 [tasks.clean]
 description = "Remove build artifacts"

@@ -102,6 +102,7 @@ mise run install
 # verify the project
 mise run lint
 mise run check-format
+mise run audit
 mise run test
 
 # format source files
@@ -131,6 +132,24 @@ src/
   __tests__/           # Vitest tests
 vss-extension.json     # Azure DevOps extension manifest
 ```
+
+## Dependency security and updates
+
+Every CI run executes `npm audit --audit-level=high`; high and critical npm
+advisories fail the build before packaging or publishing. The command analyses
+the complete dependency tree recorded in `package-lock.json`, including
+transitive dependencies. Run the same check locally with `mise run audit`.
+
+[Dependabot](.github/dependabot.yml) checks npm dependencies and GitHub Actions
+weekly. It opens pull requests for version updates and, when GitHub Dependabot
+alerts are enabled for the repository, security-update pull requests for known
+vulnerabilities. Minor and patch updates are grouped separately for production
+and development dependencies; major updates remain individual for review.
+
+Repository administrators must enable **Dependabot alerts** and **Dependabot
+security updates** in GitHub repository **Settings → Code security and
+analysis**. Dependabot pull requests run the normal CI workflow, including the
+vulnerability check, before they can be merged.
 
 ## Testing the private DEV extension
 

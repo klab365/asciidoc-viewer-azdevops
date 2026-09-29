@@ -19,6 +19,9 @@ jobs:
       - name: Install dependencies
         run: mise run install
 
+      - name: Audit dependencies for high and critical vulnerabilities
+        run: mise run audit
+
       - name: Lint
         run: mise run lint
 
