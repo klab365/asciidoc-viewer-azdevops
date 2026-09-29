@@ -7,14 +7,11 @@ updates:
       day: monday
     open-pull-requests-limit: 10
     groups:
-      production-minor-and-patch:
-        dependency-type: production
+      all-npm-dependencies:
+        patterns:
+          - "*"
         update-types:
-          - minor
-          - patch
-      development-minor-and-patch:
-        dependency-type: development
-        update-types:
+          - major
           - minor
           - patch
 
