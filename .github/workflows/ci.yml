@@ -7,6 +7,35 @@ on:
     branches: [main]
 
 jobs:
+  verify-rebased:
+    if: github.event_name == 'pull_request'
+    name: Verify PR is rebased onto main
+    runs-on: ubuntu-latest
+    steps:
+      # Check out the PR head rather than GitHub's synthetic merge ref.
+      - name: Checkout pull request head
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Require a rebased, merge-free pull request branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          git fetch origin "$BASE_REF"
+          base_sha="$(git rev-parse "origin/$BASE_REF")"
+
+          if ! git merge-base --is-ancestor "$base_sha" HEAD; then
+            echo "::error::This branch does not contain the current $BASE_REF tip. Rebase it with: git fetch origin && git rebase origin/$BASE_REF"
+            exit 1
+          fi
+
+          if git rev-list --merges "$base_sha..HEAD" | grep -q .; then
+            echo "::error::This pull request contains merge commits. Rebase the branch onto $BASE_REF before merging."
+            exit 1
+          fi
+
   build-test:
     runs-on: ubuntu-latest
     steps:
