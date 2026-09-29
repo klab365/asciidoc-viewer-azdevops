@@ -78,7 +78,7 @@ async function main(): Promise<void> {
     return;
   }
 
-  let entries: FileEntry[] = [];
+  let entries: FileEntry[];
   try {
     const iterations = await client.getPullRequestIterations(repositoryId, pullRequestId, projectId);
     const iterationId = latestIterationId(iterations);
