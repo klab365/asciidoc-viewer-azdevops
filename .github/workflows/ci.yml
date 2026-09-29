@@ -48,7 +48,7 @@ jobs:
             --output-path "asciidoc-viewer-azdevops-dev-${EXTENSION_VERSION}.vsix"
 
       - name: Upload .vsix artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: asciidoc-viewer-azdevops-dev-${{ env.EXTENSION_VERSION }}
           path: asciidoc-viewer-azdevops-dev-${{ env.EXTENSION_VERSION }}.vsix
