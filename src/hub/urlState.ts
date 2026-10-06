@@ -4,6 +4,7 @@ import type { IHostNavigationService } from "azure-devops-extension-api/Common";
 const HOST_NAVIGATION_SERVICE_ID = "ms.vss-features.host-navigation-service";
 const PATH_QUERY_PARAM = "asciidocPath";
 const BRANCH_QUERY_PARAM = "asciidocBranch";
+const REPOSITORY_QUERY_PARAM = "asciidocRepository";
 
 let cachedNavService: Promise<IHostNavigationService> | null = null;
 
@@ -24,6 +25,20 @@ export async function readSelectedPathFromUrl(): Promise<string | null> {
 export async function writeSelectedPathToUrl(path: string): Promise<void> {
   const navService = await getNavService();
   navService.setQueryParams({ [PATH_QUERY_PARAM]: path });
+}
+
+/** Reads the currently selected repository ID from the URL, if present. */
+export async function readSelectedRepositoryFromUrl(): Promise<string | null> {
+  const navService = await getNavService();
+  const params = await navService.getQueryParams();
+  const value = params[REPOSITORY_QUERY_PARAM];
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+/** Reflects the currently selected repository ID in the URL. */
+export async function writeSelectedRepositoryToUrl(repositoryId: string): Promise<void> {
+  const navService = await getNavService();
+  navService.setQueryParams({ [REPOSITORY_QUERY_PARAM]: repositoryId });
 }
 
 /** Reads the currently selected branch name from the URL, if present. */
