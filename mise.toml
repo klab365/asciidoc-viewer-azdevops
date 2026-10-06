@@ -6,18 +6,15 @@ node = "24.20.0"
 [env]
 _.file = ".env"
 
-[tasks.install]
-description = "Install npm dependencies (project libs, not CLI tools)"
-run = "npm ci"
+[hooks]
+postinstall = "npm ci"
 
 [tasks.build]
 description = "Build the extension bundle"
-depends = ["install"]
 run = "vite build"
 
 [tasks.watch]
 description = "Build in watch mode for local development"
-depends = ["install"]
 run = "vite build --watch"
 
 [tasks.package]
@@ -27,27 +24,22 @@ run = "tfx extension create --manifest-globs vss-extension.json"
 
 [tasks.lint]
 description = "Run linter"
-depends = ["install"]
 run = "npm run lint"
 
 [tasks.format]
 description = "Format source files with Prettier"
-depends = ["install"]
 run = "npm run format"
 
 [tasks.check-format]
 description = "Check source files are formatted with Prettier (no write)"
-depends = ["install"]
 run = "npm run format:check"
 
 [tasks.test]
 description = "Run tests"
-depends = ["install"]
 run = "npm test"
 
 [tasks.audit]
 description = "Fail when npm reports high or critical dependency vulnerabilities"
-depends = ["install"]
 run = "npm audit --audit-level=high"
 
 [tasks.clean]

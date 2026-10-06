@@ -16,7 +16,9 @@ import {
   readSelectedPathFromUrl,
   writeSelectedPathToUrl,
   readSelectedBranchFromUrl,
-  writeSelectedBranchToUrl
+  writeSelectedBranchToUrl,
+  readSelectedRepositoryFromUrl,
+  writeSelectedRepositoryToUrl
 } from "./urlState";
 
 const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
@@ -289,6 +291,7 @@ async function main(): Promise<void> {
 
   async function selectRepo(repo: GitRepository): Promise<void> {
     currentRepo = repo;
+    await writeSelectedRepositoryToUrl(repo.id);
     const version = await loadBranchesFor(repo);
     await loadFileTreeFor(repo, version);
   }
@@ -309,7 +312,9 @@ async function main(): Promise<void> {
     void loadFileTreeFor(currentRepo, version);
   });
 
-  const detectedRepo = await detectCurrentRepository(repositories);
+  const requestedRepository = await readSelectedRepositoryFromUrl();
+  const linkedRepo = requestedRepository ? repositories.find((repo) => repo.id === requestedRepository) : undefined;
+  const detectedRepo = linkedRepo ?? (await detectCurrentRepository(repositories));
   if (detectedRepo) {
     // This hub is opened while browsing a specific repository (like the
     // built-in "Files"/"Commits" hubs) — no need to make the user pick it
