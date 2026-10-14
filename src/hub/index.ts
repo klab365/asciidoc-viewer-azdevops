@@ -293,6 +293,7 @@ async function main(): Promise<void> {
     currentRepo = repo;
     await writeSelectedRepositoryToUrl(repo.id);
     const version = await loadBranchesFor(repo);
+    await writeSelectedBranchToUrl(version);
     await loadFileTreeFor(repo, version);
   }
 
