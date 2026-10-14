@@ -18,7 +18,7 @@ import {
   readSelectedBranchFromUrl,
   writeSelectedBranchToUrl,
   readSelectedRepositoryFromUrl,
-  writeSelectedRepositoryToUrl
+  writeSelectedRepositoryAndBranchToUrl
 } from "./urlState";
 
 const ADOC_EXTENSION_RE = /\.(adoc|asciidoc)$/i;
@@ -291,9 +291,8 @@ async function main(): Promise<void> {
 
   async function selectRepo(repo: GitRepository): Promise<void> {
     currentRepo = repo;
-    await writeSelectedRepositoryToUrl(repo.id);
     const version = await loadBranchesFor(repo);
-    await writeSelectedBranchToUrl(version);
+    await writeSelectedRepositoryAndBranchToUrl(repo.id, version);
     await loadFileTreeFor(repo, version);
   }
 
