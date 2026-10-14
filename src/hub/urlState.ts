@@ -35,10 +35,10 @@ export async function readSelectedRepositoryFromUrl(): Promise<string | null> {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
 
-/** Reflects the currently selected repository ID in the URL. */
-export async function writeSelectedRepositoryToUrl(repositoryId: string): Promise<void> {
+/** Reflects the selected repository and branch in the URL. */
+export async function writeSelectedRepositoryAndBranchToUrl(repositoryId: string, branch: string): Promise<void> {
   const navService = await getNavService();
-  navService.setQueryParams({ [REPOSITORY_QUERY_PARAM]: repositoryId });
+  navService.setQueryParams({ [REPOSITORY_QUERY_PARAM]: repositoryId, [BRANCH_QUERY_PARAM]: branch });
 }
 
 /** Reads the currently selected branch name from the URL, if present. */

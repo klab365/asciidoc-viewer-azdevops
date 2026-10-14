@@ -4,6 +4,11 @@ All notable changes to this project are documented in this file.
 
 ## [1.3.0] - 2026-10-14
 
+### Added
+
+- Preserve repository, branch, and file selections in URL parameters, allowing
+  the hub to be opened directly at a specific repository, branch, and file.
+
 ### Security
 
 - Upgrade Mermaid to 12.2.0, which resolves the vulnerable transitive KaTeX
