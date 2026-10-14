@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.0] - 2026-10-14
+
+### Security
+
+- Upgrade Mermaid to 12.2.0, which resolves the vulnerable transitive KaTeX
+  dependency (GHSA-238p-pmpm-9mq7).
+
 ## [1.2.0]
 
 ### Added
