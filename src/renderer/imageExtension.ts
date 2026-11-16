@@ -1,4 +1,4 @@
-import type { Extensions, AbstractBlock, Document } from "@asciidoctor/core";
+import { AbstractBlock, Html5Converter, type AbstractNode, type Inline } from "@asciidoctor/core";
 import { getRepoBinaryContent } from "../services/gitService";
 import { resolveRepoRelativePath, type RenderContext } from "../types";
 
@@ -27,61 +27,52 @@ function isAbsoluteUrl(target: string): boolean {
   return /^([a-z][a-z0-9+.-]*:)?\/\//i.test(target) || target.startsWith("data:");
 }
 
-/**
- * Registers a TreeProcessor that finds all block-level `image::target[]`
- * macros in the parsed document (including ones from included files — each
- * node's `sourceLocation.dir` correctly reflects the directory of whichever
- * file it actually came from, verified experimentally) and rewrites their
- * `target` attribute to a unique placeholder string.
- *
- * The placeholders are collected into `pendingImages` so the caller (see
- * `asciidocRenderer.ts`) can resolve them to data URIs *after* conversion —
- * fetching images requires async Git REST calls, which don't fit well inside
- * a synchronous tree walk, and doing the fetches after conversion also
- * naturally de-duplicates repeated images.
- *
- * Only block images (`image::foo.png[]` on its own line) are supported —
- * inline images (`image:foo.png[]` within a paragraph) are resolved lazily
- * during HTML conversion and aren't visible to a TreeProcessor, so they
- * still show as broken links. See plan.md for this known limitation.
- */
-export function registerImageExtension(
-  registry: ReturnType<typeof Extensions.create>,
-  mainFileDir: string,
-  pendingImages: PendingImage[]
-): void {
-  registry.treeProcessor(function (this: { process: (fn: (doc: Document) => Document) => void }) {
-    this.process((doc) => {
-      let counter = 0;
+/** Queues repository images during conversion, including inline images and table cells. */
+export function createImageConverter(mainFileDir: string, pendingImages: PendingImage[]): Html5Converter {
+  const imageTarget = (node: AbstractNode, target: string): string => {
+    const imagesDir = node.getDocument().getAttribute("imagesdir") as string | undefined;
+    if (isAbsoluteUrl(target) || isAbsoluteUrl(imagesDir ?? "")) {
+      return target;
+    }
 
-      // `:imagesdir:` is applied by Asciidoctor while producing the HTML,
-      // so it must also be applied before looking up repository files.
-      const imagesDir = doc.getAttribute("imagesdir") as string | undefined;
+    const parent = node.getParent();
+    const source = node instanceof AbstractBlock ? node : parent instanceof AbstractBlock ? parent : undefined;
+    const targetWithImagesDir = target.startsWith("/") || !imagesDir ? target : `${imagesDir}/${target}`;
+    const resolvedPath = resolveRepoRelativePath(source?.getSourceLocation()?.dir || mainFileDir, targetWithImagesDir);
+    if (resolvedPath === null) {
+      console.error("[asciidoc-viewer] Could not resolve repository image path", targetWithImagesDir);
+      return target;
+    }
 
-      const visit = (block: AbstractBlock): void => {
-        if (block.getContext?.() === "image") {
-          const target = block.getAttribute("target") as string | undefined;
-          if (target && !isAbsoluteUrl(target) && !isAbsoluteUrl(imagesDir ?? "")) {
-            const location = block.getSourceLocation?.();
-            const baseDir = location?.dir || mainFileDir;
-            const targetWithImagesDir = target.startsWith("/") || !imagesDir ? target : `${imagesDir}/${target}`;
-            const resolved = resolveRepoRelativePath(baseDir, targetWithImagesDir);
-            if (resolved) {
-              const placeholder = `asciidoc-viewer-image-placeholder-${counter++}`;
-              block.setAttribute("target", placeholder, true);
-              pendingImages.push({ placeholder, resolvedPath: resolved });
-            }
-          }
-        }
-        for (const child of block.getBlocks?.() ?? []) {
-          visit(child);
-        }
-      };
+    const placeholder = `asciidoc-viewer-image-placeholder-${pendingImages.length}`;
+    pendingImages.push({ placeholder, resolvedPath });
+    return placeholder;
+  };
 
-      visit(doc);
-      return doc;
-    });
-  });
+  return new (class extends Html5Converter {
+    override async convert_image(node: AbstractBlock): Promise<string> {
+      const target = node.getAttribute("target") as string;
+      node.setAttribute("target", imageTarget(node, target), true);
+      try {
+        return await super.convert_image(node);
+      } finally {
+        node.setAttribute("target", target, true);
+      }
+    }
+
+    override async convert_inline_image(node: Inline): Promise<string> {
+      const target = node.target;
+      if (!target || node.type === "icon") {
+        return super.convert_inline_image(node);
+      }
+      node.target = imageTarget(node, target);
+      try {
+        return await super.convert_inline_image(node);
+      } finally {
+        node.target = target;
+      }
+    }
+  })("html5");
 }
 
 /** Fetches each pending image and replaces its placeholder in `html` with a `data:` URI. */
@@ -111,7 +102,7 @@ export async function resolvePendingImages(
       // target. Replacing only the placeholder would leave `images/data:…`,
       // which the browser treats as a relative URL. Replace the whole src
       // value so both successful images and fallback SVGs are valid data URIs.
-      result = result.replace(new RegExp(`(src=")[^"]*${placeholder}[^"]*(")`, "g"), `$1${replacement}$2`);
+      result = result.replace(new RegExp(`(src=")[^"]*${placeholder}(")`, "g"), `$1${replacement}$2`);
     })
   );
 

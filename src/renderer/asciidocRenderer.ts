@@ -7,7 +7,7 @@ import { dirnameOf, type RenderContext } from "../types";
 
 /**
  * Converts AsciiDoc source to HTML, resolving local `include::` directives,
- * block-level `image::` references, and PlantUML/Mermaid/... diagram blocks
+ * block and inline image references, and PlantUML/Mermaid/... diagram blocks
  * against the same repository/branch described by `context`.
  */
 export async function renderAsciidoc(source: string, context: RenderContext): Promise<string> {

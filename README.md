@@ -30,9 +30,9 @@ request's source commit.
 - Resolve local `include::` directives recursively in the same repository and
   version, including cycle detection and a readable unresolved-include
   warning.
-- Render block images (`image::...[]`) from Azure Repos as data URIs. Relative
-  paths, `:imagesdir:`, and images referenced from included files are
-  supported.
+- Render block images (`image::...[]`) and inline images (`image:...[]`)
+  from Azure Repos as data URIs. Relative paths, `:imagesdir:`, images
+  referenced from included files, and images inside table cells are supported.
 - Preview image files (`.svg`, `.png`, `.jpg`, `.jpeg`, `.gif`, `.webp`, and
   `.bmp`) directly from the file tree.
 - Preview `.puml` and `.plantuml` files directly from the file tree.
@@ -130,8 +130,9 @@ is needed in each document.
 - This is a read-only viewer; editing files is not supported.
 - Local includes are limited to the same Azure Repos repository and selected
   branch/commit. External and cross-repository includes are not resolved.
-- Only block-image macros (`image::target[]`) are fetched from the repository;
-  inline image macros (`image:target[]`) are not currently resolved.
+- Asciidoctor can attribute an included file's final paragraph to the parent
+  document when there is no trailing blank line. End included files with a
+  blank line when that paragraph contains relative inline images.
 - Mermaid diagrams are rendered locally in the browser. PlantUML and most
   other diagram types are rendered by [Kroki](https://kroki.io), so their
   diagram source is sent to that rendering service.
