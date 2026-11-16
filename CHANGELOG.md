@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.5.2](https://github.com/klab365/asciidoc-viewer-azdevops/compare/asciidoc-viewer-azdevops-v1.5.1...asciidoc-viewer-azdevops-v1.5.2) (2026-11-16)
+
+
+### Bug Fixes
+
+* Resolve inline and table-cell images ([94c37bf](https://github.com/klab365/asciidoc-viewer-azdevops/commit/94c37bf4e5083afb85d7de29517564e3711cafb6))
+
 ## [1.5.1](https://github.com/klab365/asciidoc-viewer-azdevops/compare/asciidoc-viewer-azdevops-v1.5.0...asciidoc-viewer-azdevops-v1.5.1) (2026-11-10)
 
 
